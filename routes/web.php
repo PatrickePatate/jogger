@@ -11,6 +11,7 @@ use App\Livewire\Admin\Users;
 use App\Livewire\Github\Connect;
 use App\Livewire\Github\Deliveries;
 use App\Livewire\Github\Installations;
+use App\Livewire\Hosts\Index as HostsIndex;
 use App\Livewire\Settings\Security;
 use App\Livewire\Settings\Tokens;
 use App\Livewire\Setup\FirstRun;
@@ -34,6 +35,7 @@ Route::middleware('signed')->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::view('/', 'overview')->name('overview');
+    Route::get('/hosts', HostsIndex::class)->name('hosts.index');
     Route::get('/settings/security', Security::class)->name('settings.security');
     Route::get('/settings/tokens', Tokens::class)->name('settings.tokens');
 

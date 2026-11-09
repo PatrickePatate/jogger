@@ -23,6 +23,8 @@ return Application::configure(basePath: dirname(__DIR__))
         then: function () {
             // Inbound webhooks: no session/CSRF middleware at all (see routes/webhooks.php).
             Route::group([], base_path('routes/webhooks.php'));
+            // Agent API: bearer credentials, no session.
+            Route::group([], base_path('routes/agent.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {

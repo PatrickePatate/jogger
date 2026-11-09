@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('jogger:prune')->dailyAt('03:15')->onOneServer();
+Schedule::command('jogger:mark-offline-hosts')->everyTenSeconds()->withoutOverlapping();

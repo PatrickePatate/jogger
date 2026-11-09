@@ -1,0 +1,20 @@
+<?php
+
+use App\Http\Controllers\Agent\EnrollController;
+use App\Http\Controllers\Agent\HeartbeatController;
+use App\Http\Controllers\Agent\MeController;
+use App\Http\Middleware\AuthenticateAgent;
+use Illuminate\Support\Facades\Route;
+
+/*
+| Agent API (/agent/v1). Outside the `web` group: no session or CSRF. Enrollment is authenticated by the
+| single-use token in the body; everything else by the host credential.
+*/
+Route::prefix('agent/v1')->group(function () {
+    Route::post('/enroll', EnrollController::class)->middleware('throttle:20,1')->name('agent.enroll');
+
+    Route::middleware(AuthenticateAgent::class)->group(function () {
+        Route::post('/heartbeat', HeartbeatController::class)->name('agent.heartbeat');
+        Route::get('/me', MeController::class)->name('agent.me');
+    });
+});

@@ -20,3 +20,5 @@ Broadcast::channel('job.{jobId}', fn (User $user, string $jobId) => Str::isUuid(
     ->visibleTo($user)->whereKey($jobId)->exists());
 Broadcast::channel('host.{hostId}', fn ($user, $hostId) => false);
 Broadcast::channel('pool.{poolId}', fn ($user, $poolId) => false);
+// Hosts are shared infrastructure: any signed-in user sees them, so any signed-in user may follow their status.
+Broadcast::channel('hosts', fn (User $user) => true);
