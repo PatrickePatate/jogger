@@ -1,0 +1,127 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    --color-ink: #14171c;
+    --color-bg: #f6f7f9;
+    --color-surface: #ffffff;
+    --color-border: #e3e6eb;
+    --color-border-strong: #c9ced6;
+    --color-text: #14171c;
+    --color-text-secondary: #5b6270;
+
+    --color-success: #0f7a57;
+    --color-error: #b42318;
+    --color-warning: #92400e;
+    --color-info: #1d4ed8;
+
+    /* Destructive buttons: vivid fill (white text 4.8:1) and a readable red for tinted/ghost variants. */
+    --color-danger: #dc2626;
+    --color-danger-hover: #c81e1e;
+    --color-danger-ink: #c81e1e;
+
+    --color-muted: #f1f2f4; /* secondary buttons, hover fills */
+    --color-ring: #9aa3b2; /* focus ring */
+
+    --radius-card: 16px;
+    --radius-control: 10px;
+    --shadow-card: 0 1px 2px rgb(20 23 28 / 0.04), 0 4px 12px rgb(20 23 28 / 0.04);
+    --shadow-pop: 0 8px 30px rgb(20 23 28 / 0.14);
+}
+
+.dark {
+    color-scheme: dark;
+    --color-ink: #edeff3;
+    --color-bg: #0e1116;
+    --color-surface: #161a21;
+    --color-border: #262c36;
+    --color-border-strong: #3a4250;
+    --color-text: #edeff3;
+    --color-text-secondary: #9aa3b2;
+    --color-success: #3dd598;
+    --color-error: #f97066;
+    --color-warning: #fdb022;
+    --color-info: #7aa2ff;
+    --color-danger-ink: #f87171;
+    --color-muted: #222833;
+    --color-ring: #6b7482;
+}
+
+@layer base {
+    html {
+        background: var(--color-bg);
+    }
+
+    body {
+        @apply bg-bg font-sans text-sm text-text antialiased;
+    }
+
+    :focus-visible {
+        @apply outline-2 outline-offset-2 outline-info;
+    }
+
+    /* Tailwind v4 defaults buttons to cursor:default; keep the pointer. */
+    button:not(:disabled),
+    [role='button']:not(:disabled) {
+        cursor: pointer;
+    }
+
+    [x-cloak] {
+        display: none !important;
+    }
+}
+
+@utility tabular {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Tables degrade to stacked cards below md when marked .table-stack (cells carry data-label). */
+@media (max-width: 47.99rem) {
+    .table-stack thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+    }
+
+    .table-stack tbody tr {
+        display: block;
+        margin-bottom: 0.75rem;
+        padding: 0.5rem 1rem;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-card);
+        background: var(--color-surface);
+    }
+
+    .table-stack tbody td {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.375rem 0;
+        border: 0;
+    }
+
+    .table-stack tbody td[data-label]::before {
+        content: attr(data-label);
+        color: var(--color-text-secondary);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+    }
+}

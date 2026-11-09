@@ -1,0 +1,32 @@
+{
+  "runner": {
+    "id": 23,
+    "name": "jogger-9f2c1a7e",
+    "os": "unknown",
+    "status": "offline",
+    "busy": false,
+    "labels": [
+      {
+        "id": 0,
+        "name": "self-hosted",
+        "type": "read-only"
+      },
+      {
+        "id": 0,
+        "name": "linux",
+        "type": "read-only"
+      },
+      {
+        "id": 0,
+        "name": "x64",
+        "type": "read-only"
+      },
+      {
+        "id": 1,
+        "name": "jogger-large",
+        "type": "custom"
+      }
+    ]
+  },
+  "encoded_jit_config": "YWJjZGVmLXRoaXMtaXMtbm90LWEtcmVhbC1qaXQtY29uZmln"
+}

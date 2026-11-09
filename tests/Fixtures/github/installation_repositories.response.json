@@ -1,0 +1,26 @@
+{
+  "total_count": 2,
+  "repository_selection": "selected",
+  "repositories": [
+    {
+      "id": 186853002,
+      "node_id": "MDEwOlJlcG9zaXRvcnkxODY4NTMwMDI=",
+      "name": "example-workflow",
+      "full_name": "octo-org/example-workflow",
+      "private": true,
+      "owner": {
+        "login": "octo-org"
+      }
+    },
+    {
+      "id": 186853003,
+      "node_id": "MDEwOlJlcG9zaXRvcnkxODY4NTMwMDM=",
+      "name": "public-docs",
+      "full_name": "octo-org/public-docs",
+      "private": false,
+      "owner": {
+        "login": "octo-org"
+      }
+    }
+  ]
+}

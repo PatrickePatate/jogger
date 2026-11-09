@@ -1,0 +1,22 @@
+{
+  "action": "deleted",
+  "repository": {
+    "id": 186853003,
+    "node_id": "MDEwOlJlcG9zaXRvcnk186853003",
+    "name": "public-docs",
+    "full_name": "octo-org/public-docs",
+    "private": false,
+    "owner": {
+      "login": "octo-org"
+    }
+  },
+  "installation": {
+    "id": 4730226,
+    "node_id": "x"
+  },
+  "sender": {
+    "login": "octocat",
+    "id": 583231,
+    "type": "User"
+  }
+}

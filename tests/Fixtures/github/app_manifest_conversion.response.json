@@ -1,0 +1,30 @@
+{
+  "id": 837201,
+  "slug": "jogger-acme",
+  "node_id": "MDM6QXBwODM3MjAx",
+  "name": "Jogger acme",
+  "description": "Runs your GitHub Actions jobs on your own hardware, in ephemeral Docker runners.",
+  "external_url": "https://jogger.acme.example",
+  "html_url": "https://github.com/apps/jogger-acme",
+  "created_at": "2026-11-09T10:00:00Z",
+  "updated_at": "2026-11-09T10:00:00Z",
+  "owner": {
+    "login": "octo-org",
+    "id": 6811672,
+    "type": "Organization"
+  },
+  "permissions": {
+    "actions": "read",
+    "administration": "write",
+    "metadata": "read",
+    "organization_self_hosted_runners": "write"
+  },
+  "events": [
+    "workflow_job",
+    "repository"
+  ],
+  "client_id": "Iv1.8a61f9b3a7aba766",
+  "client_secret": "1726be1638095a19edd134c77bde3aa2ece1e5d8",
+  "webhook_secret": "e340154128314309424b7c8e90325147d99fdafa",
+  "pem": "__PEM__"
+}

@@ -1,0 +1,22 @@
+{
+  "action": "created",
+  "repository": {
+    "id": 186853099,
+    "node_id": "MDEwOlJlcG9zaXRvcnk186853099",
+    "name": "brand-new",
+    "full_name": "octo-org/brand-new",
+    "private": true,
+    "owner": {
+      "login": "octo-org"
+    }
+  },
+  "installation": {
+    "id": 4730226,
+    "node_id": "x"
+  },
+  "sender": {
+    "login": "octocat",
+    "id": 583231,
+    "type": "User"
+  }
+}

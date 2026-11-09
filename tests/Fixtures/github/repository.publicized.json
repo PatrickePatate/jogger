@@ -1,0 +1,22 @@
+{
+  "action": "publicized",
+  "repository": {
+    "id": 186853002,
+    "node_id": "MDEwOlJlcG9zaXRvcnk186853002",
+    "name": "example-workflow",
+    "full_name": "octo-org/example-workflow",
+    "private": false,
+    "owner": {
+      "login": "octo-org"
+    }
+  },
+  "installation": {
+    "id": 4730226,
+    "node_id": "x"
+  },
+  "sender": {
+    "login": "octocat",
+    "id": 583231,
+    "type": "User"
+  }
+}

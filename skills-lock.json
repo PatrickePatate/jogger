@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "project-architect": {
+      "source": "ersinkoc/project-architect",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "9f32e40015069f39c7f5325cf815d7454b52233660df9b2b864bcf6724967375"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "action": "renamed",
+  "repository": {
+    "id": 186853002,
+    "node_id": "MDEwOlJlcG9zaXRvcnk186853002",
+    "name": "renamed-workflow",
+    "full_name": "octo-org/renamed-workflow",
+    "private": true,
+    "owner": {
+      "login": "octo-org"
+    }
+  },
+  "changes": {
+    "repository": {
+      "name": {
+        "from": "example-workflow"
+      }
+    }
+  },
+  "installation": {
+    "id": 4730226,
+    "node_id": "x"
+  },
+  "sender": {
+    "login": "octocat",
+    "id": 583231,
+    "type": "User"
+  }
+}
