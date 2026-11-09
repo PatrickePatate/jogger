@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Domain\Github\Models;
 
+use App\Models\User;
 use App\Support\Concerns\HasUuid7;
 use Database\Factories\RepositoryFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -30,6 +32,21 @@ class Repository extends Model
     public function installation(): BelongsTo
     {
         return $this->belongsTo(Installation::class);
+    }
+
+    /**
+     * Repositories of installations the user may see (team grants); global admins see all.
+     *
+     * @param  Builder<Repository>  $query
+     * @return Builder<Repository>
+     */
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if ($user->isAdmin()) {
+            return $query;
+        }
+
+        return $query->whereIn('installation_id', Installation::query()->visibleTo($user)->select('installations.id'));
     }
 
     /** "owner/name" split into its two halves. */

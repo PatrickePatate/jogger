@@ -1,6 +1,10 @@
 <?php
 
+use App\Domain\Github\Models\Repository;
+use App\Domain\Jobs\Models\WorkflowJob;
+use App\Models\User;
 use Illuminate\Support\Facades\Broadcast;
+use Illuminate\Support\Str;
 
 /*
 | Realtime channels. All are deny-all placeholders until the policies they
@@ -8,8 +12,11 @@ use Illuminate\Support\Facades\Broadcast;
 | (team grants via the visibleTo scopes).
 */
 
-Broadcast::channel('jobs', fn ($user) => false);
-Broadcast::channel('repository.{repositoryId}', fn ($user, $repositoryId) => false);
-Broadcast::channel('job.{jobId}', fn ($user, $jobId) => false);
+// `jobs` carries every job of the instance, so it is for global admins; everyone else follows repositories.
+Broadcast::channel('jobs', fn (User $user) => $user->isAdmin());
+Broadcast::channel('repository.{repositoryId}', fn (User $user, string $repositoryId) => Str::isUuid($repositoryId) && Repository::query()
+    ->visibleTo($user)->whereKey($repositoryId)->exists());
+Broadcast::channel('job.{jobId}', fn (User $user, string $jobId) => Str::isUuid($jobId) && WorkflowJob::query()
+    ->visibleTo($user)->whereKey($jobId)->exists());
 Broadcast::channel('host.{hostId}', fn ($user, $hostId) => false);
 Broadcast::channel('pool.{poolId}', fn ($user, $poolId) => false);

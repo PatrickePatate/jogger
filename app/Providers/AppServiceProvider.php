@@ -9,6 +9,7 @@ use App\Domain\Github\Gateway\RateLimitTracker;
 use App\Domain\Github\Handlers\HandleInstallation;
 use App\Domain\Github\Handlers\HandleInstallationRepositories;
 use App\Domain\Github\Handlers\HandleRepository;
+use App\Domain\Github\Handlers\HandleWorkflowJob;
 use App\Domain\Github\OAuth\GithubIdentityProvider;
 use App\Domain\Github\OAuth\GithubOAuth;
 use App\Domain\Github\Webhooks\HandlePing;
@@ -40,6 +41,7 @@ class AppServiceProvider extends ServiceProvider
             $handlers->register('installation', HandleInstallation::class);
             $handlers->register('installation_repositories', HandleInstallationRepositories::class);
             $handlers->register('repository', HandleRepository::class);
+            $handlers->register('workflow_job', HandleWorkflowJob::class);
 
             return $handlers;
         });
