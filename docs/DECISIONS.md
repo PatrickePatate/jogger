@@ -424,3 +424,12 @@ Running log of choices made while building, where reality differed from the plan
 - A pool with "Keep the tool cache between jobs" sends `tool_cache_volume: jogger-toolcache-{pool id}` in `runner.start`. The agent creates that named volume if missing and mounts it at `/opt/hostedtoolcache`. One volume per pool per host; the agent refuses any name without that prefix, so the server can never make it mount a host path or another volume.
 - The volume is labelled `jogger.tool-cache`, not with the host label, so the leftover-volume prune leaves it alone when no runner is using it. Nothing deletes it when the pool is deleted (left for later).
 - `jogger:prune-hosts` (daily 03:45) sends `host.prune` with `max_build_cache_gb` (`JOGGER_BUILD_CACHE_MAX_GB`, default 20, 0 = leave alone) to reachable hosts; the agent calls Docker's build prune with `keep-storage`. The cap is instance-wide config for now, not a per-host setting. The agent's volume test ran against the local Docker engine; build-cache pruning was only unit-tested for the query it sends.
+
+## Task 50: Metrics rollups and Insights page
+
+- `metric_samples` holds minute and hour buckets for the instance, each pool and each repository (the instance uses the all-zero UUID as subject so the column fits in the primary key). `jogger:rollup-metrics` runs every minute: it recomputes the last two minutes and the current hour, settles the previous hour just after it ends, and prunes minutes after 2 days and hours after 400. `--backfill-hours=N` recomputes past hours.
+- Queue wait p50/p95 use PostgreSQL `percentile_cont` over the jobs that started in the bucket, so they are exact per bucket. Runner counts are a snapshot taken when the minute is rolled up (past minutes cannot be rebuilt); an hour averages its minutes.
+- **Charts are server-rendered SVG (`x-ui.line-chart`), not uPlot.** No JavaScript, colours come from the theme tokens so dark mode follows, and each chart carries a text summary (latest and highest value) for screen readers. The cost: no hover tooltips or zoom. uPlot can replace the component later without touching the data.
+- Non-administrators see the sum of the repositories (and pools) they may see; across several repositories their p50 is a job-weighted average and their p95 the worst bucket, which are approximations.
+- Ranges: 1 h reads minute samples, 24 h / 7 d / 30 d read hour samples (at most 720 rows per series through the primary key). The "< 1 s on 30 days of data" criterion was not measured.
+- CSV export covers the repositories table of the selected range.

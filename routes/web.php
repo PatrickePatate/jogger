@@ -13,6 +13,7 @@ use App\Livewire\Github\Connect;
 use App\Livewire\Github\Deliveries;
 use App\Livewire\Github\Installations;
 use App\Livewire\Hosts\Index as HostsIndex;
+use App\Livewire\Insights\Index as InsightsIndex;
 use App\Livewire\Jobs\Index as JobsIndex;
 use App\Livewire\Jobs\Show as JobShow;
 use App\Livewire\Overview\Dashboard;
@@ -52,6 +53,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/pools', PoolsIndex::class)->name('pools.index');
     Route::get('/pools/create', PoolForm::class)->name('pools.create');
     Route::get('/pools/{pool}/edit', PoolForm::class)->whereUuid('pool')->name('pools.edit');
+    Route::get('/insights', InsightsIndex::class)->name('insights.index');
     Route::get('/secrets', SecretsIndex::class)->name('secrets.index');
     Route::get('/settings/security', Security::class)->name('settings.security');
     Route::get('/settings/tokens', Tokens::class)->name('settings.tokens');

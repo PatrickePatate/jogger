@@ -6,6 +6,7 @@
         ['route' => 'pools.index', 'label' => 'Pools', 'icon' => 'cpu'],
         ['route' => 'runners.index', 'label' => 'Runners', 'icon' => 'terminal'],
         ['route' => 'hosts.index', 'label' => 'Hosts', 'icon' => 'server'],
+        ['route' => 'insights.index', 'label' => 'Insights', 'icon' => 'list'],
         ['route' => 'secrets.index', 'label' => 'Secrets', 'icon' => 'check-circle'],
         ['route' => 'github.connect', 'label' => 'GitHub', 'icon' => 'terminal', 'admin' => true],
         ['route' => 'github.installations', 'label' => 'Installations', 'icon' => 'server', 'admin' => true],
