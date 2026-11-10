@@ -5,17 +5,16 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Domain\Jobs\Logs\LogIngestor;
-use App\Domain\Jobs\Logs\LogStore;
 use App\Domain\Jobs\Models\JobLog;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 
 #[Signature('jogger:flush-logs {--idle=15 : Minutes of silence after which an open log is closed}')]
-#[Description('Close logs whose runner went silent without an end marker, and delete logs past their retention')]
+#[Description('Close logs whose runner went silent without an end marker (expired logs are removed by jogger:prune)')]
 final class FlushLogs extends Command
 {
-    public function handle(LogIngestor $ingestor, LogStore $store): int
+    public function handle(LogIngestor $ingestor): int
     {
         $closed = 0;
         JobLog::query()
@@ -26,14 +25,7 @@ final class FlushLogs extends Command
                 $closed++;
             }, 100, 'runner_id');
 
-        $deleted = 0;
-        JobLog::query()->where('expires_at', '<', now())->eachById(function (JobLog $log) use ($store, &$deleted) {
-            $store->delete($log);
-            $log->delete();
-            $deleted++;
-        }, 100, 'runner_id');
-
-        $this->info("Closed {$closed} idle logs, deleted {$deleted} expired logs.");
+        $this->info("Closed {$closed} idle logs.");
 
         return self::SUCCESS;
     }

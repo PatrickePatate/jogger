@@ -363,3 +363,11 @@ Running log of choices made while building, where reality differed from the plan
 
 - **Not performed.** It needs a real GitHub App, repository and public webhook URL, which this work could not create. `docs/E2E.md` holds the procedure, the checks, the parts most likely to need fixing, and an empty results table; `tests/Script/e2e.sh` dispatches the workflow with `gh` and follows the job through `/api/v1/jobs` (added in Task 41). The script is syntax-checked only.
 - Consequence: the "End-to-end alpha" milestone is **not reached** until someone runs this. Everything after it is built on the fake gateway.
+
+## Task 41 — Log retrieval, scrollback, retention
+
+- **Scrollback is by byte offset, not by `seq`** (deviation): `GET /jobs/{job}/log?offset=&limit=` returns `{data, offset, next_offset, size, last_seq, finalized, truncated}`; a negative offset means "last N bytes"; windows start on a line boundary; at most 1 MB per request. The log is stored as plain text without a seq→offset index, and the viewer does not need one: it loads scrollback, remembers `last_seq`, and ignores broadcast chunks at or below it. Size and `last_seq` come from the same row read, so the two always agree.
+- Works the same for live files and gzip archives (`gzseek`). It is not signed; it is behind the session and the job's visibility (404 for jobs the user cannot see).
+- **Download**: `GET /jobs/{job}/log/download` and `GET /api/v1/jobs/{id}/logs` stream plain text; `?format=gz` hands out the stored archive once the log is finalized. Text is already masked at ingestion.
+- **Jobs API added here** because the E2E script needs it: `GET /api/v1/jobs` (filters `repository`, `status`, `pool`; cursor pagination, newest first) and `GET /api/v1/jobs/{id}`.
+- **`jogger:prune`** now deletes expired logs (file + row), and completed jobs older than `job_retention_days` together with their log files. Jobs that never completed are kept however old. Log expiry moved here from `jogger:flush-logs`, which only closes idle logs now.

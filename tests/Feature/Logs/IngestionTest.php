@@ -145,7 +145,7 @@ class IngestionTest extends TestCase
         $this->ship(['seq' => 0, 'data' => 'x'])->assertStatus(422);
     }
 
-    public function test_flush_closes_idle_logs_and_deletes_expired_ones(): void
+    public function test_flush_closes_idle_logs_and_prune_deletes_expired_ones(): void
     {
         $this->ship(['seq' => 1, 'data' => "one\n"]);
         JobLog::query()->whereKey($this->runner)->update(['last_chunk_at' => now()->subHour()]);
@@ -155,7 +155,7 @@ class IngestionTest extends TestCase
         $this->assertNotNull($log->finalized_at);
 
         $log->update(['expires_at' => now()->subMinute()]);
-        $this->artisan('jogger:flush-logs')->assertSuccessful();
+        $this->artisan('jogger:prune')->assertSuccessful();
         $this->assertNull(JobLog::query()->find($this->runner));
         Storage::disk('logs')->assertMissing((string) $log->storage_path);
     }

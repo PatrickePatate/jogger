@@ -4,6 +4,7 @@ use App\Events\Pinged;
 use App\Http\Controllers\Auth\GithubLoginController;
 use App\Http\Controllers\Auth\InvitationController;
 use App\Http\Controllers\GithubManifestController;
+use App\Http\Controllers\JobLogController;
 use App\Http\Middleware\LocalOnly;
 use App\Http\Middleware\RedirectIfSetupComplete;
 use App\Livewire\Admin\Teams;
@@ -38,6 +39,8 @@ Route::middleware('signed')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::view('/', 'overview')->name('overview');
     Route::get('/hosts', HostsIndex::class)->name('hosts.index');
+    Route::get('/jobs/{job}/log', [JobLogController::class, 'scrollback'])->name('jobs.log');
+    Route::get('/jobs/{job}/log/download', [JobLogController::class, 'download'])->name('jobs.log.download');
     Route::get('/pools', PoolsIndex::class)->name('pools.index');
     Route::get('/pools/create', PoolForm::class)->name('pools.create');
     Route::get('/pools/{pool}/edit', PoolForm::class)->whereUuid('pool')->name('pools.edit');

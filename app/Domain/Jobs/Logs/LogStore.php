@@ -73,6 +73,54 @@ final class LogStore
         return $disk->exists($live) ? (string) $disk->get($live) : '';
     }
 
+    /**
+     * Up to $length bytes of the log starting at byte $offset, from the live file or the archive.
+     * Never reads past $limit (the size recorded for the log), so a chunk being appended right now is not half-read.
+     */
+    public function slice(JobLog $log, int $offset, int $length, ?int $limit = null): string
+    {
+        $limit ??= $log->size_bytes;
+        $length = min($length, max(0, $limit - $offset));
+        if ($length <= 0) {
+            return '';
+        }
+
+        $disk = $this->disk();
+        if ($log->storage_path !== null && $disk->exists($log->storage_path)) {
+            $gz = gzopen($disk->path($log->storage_path), 'rb');
+            if ($gz === false) {
+                return '';
+            }
+            gzseek($gz, $offset);
+            $data = (string) gzread($gz, $length);
+            gzclose($gz);
+
+            return $data;
+        }
+
+        $live = $this->livePath($log->runner_id);
+        if (! $disk->exists($live)) {
+            return '';
+        }
+        $file = fopen($disk->path($live), 'rb');
+        if ($file === false) {
+            return '';
+        }
+        fseek($file, $offset);
+        $data = (string) fread($file, $length);
+        fclose($file);
+
+        return $data;
+    }
+
+    /** Absolute path of the gzip archive, or null while the log is still live. */
+    public function archivePath(JobLog $log): ?string
+    {
+        $disk = $this->disk();
+
+        return $log->storage_path !== null && $disk->exists($log->storage_path) ? $disk->path($log->storage_path) : null;
+    }
+
     public function delete(JobLog $log): void
     {
         $this->disk()->delete(array_filter([$log->storage_path, $this->livePath($log->runner_id)]));
