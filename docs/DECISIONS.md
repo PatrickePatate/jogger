@@ -181,3 +181,8 @@ Running log of choices made while building, where reality differed from the plan
 - **Agent channel auth:** `POST /agent/v1/broadcasting/auth` signs only `private-host.{own id}` (else 403) using the broadcaster's own signature. Browsers still cannot join `host.*` (user auth stays deny-all). Not exercised against a real Reverb server/Pusher client yet (the agent's pusher client arrives with Task 23/24).
 - **Bug found by the tests:** `available_at` defaulted to the database clock while "due" is compared with the app clock; under test time travel (and with any real clock skew) commands looked not yet due. It is now set from the app clock on insert.
 - No per-host rate limit on the agent API yet (enroll is limited by IP); worth revisiting in Task 56 hardening.
+
+## CI activity heatmap (user request, between Tasks 21 and 22)
+- New reusable `<x-ui.activity-heatmap :days :failed :weeks unit>` (GitHub-style calendar: weeks as columns, Monday first, month labels, Less→More legend, `title` tooltip per day including failed count; five shades of the `info` token, so it follows light/dark mode) and `GetJobActivity` (jobs **queued** per day, last 26 weeks, restricted by `visibleTo`; days are UTC dates). Shown on the Overview in a "CI activity" card with the total, and in the UI kit page.
+- Counts jobs by `queued_at`, so it measures CI load, not run duration. Task 45 (Overview dashboard) should keep this card when it replaces the placeholder.
+- Verified visually in the real app with ~580 generated jobs (removed afterwards).

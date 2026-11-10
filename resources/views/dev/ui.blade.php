@@ -38,6 +38,11 @@
             </div>
         </x-ui.card>
 
+        <x-ui.card title="Activity heatmap" description="One square per day; darker means more jobs.">
+            @php($demo = collect(range(0, 120))->mapWithKeys(fn ($i) => [now()->subDays($i)->toDateString() => ($i * 7) % 11 === 0 ? 0 : ($i * 13) % 23])->all())
+            <x-ui.activity-heatmap :days="$demo" />
+        </x-ui.card>
+
         <x-ui.card title="Badges">
             <div class="flex flex-wrap gap-2">
                 <x-ui.badge tone="success" icon="check-circle">Completed</x-ui.badge>
