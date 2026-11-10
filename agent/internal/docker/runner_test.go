@@ -1,9 +1,11 @@
 package docker
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -236,5 +238,42 @@ func TestSplitRef(t *testing.T) {
 		if i, tag := splitRef(in); i != want[0] || tag != want[1] {
 			t.Errorf("%s -> %s %s", in, i, tag)
 		}
+	}
+}
+
+func TestDemuxMergesBothStreams(t *testing.T) {
+	frame := func(stream byte, s string) []byte {
+		h := []byte{stream, 0, 0, 0, 0, 0, 0, byte(len(s))}
+		return append(h, s...)
+	}
+	var in, out bytes.Buffer
+	in.Write(frame(1, "out\n"))
+	in.Write(frame(2, "err\n"))
+	if err := demux(&in, &out); err != nil || out.String() != "out\nerr\n" {
+		t.Fatalf("%q %v", out.String(), err)
+	}
+	if err := demux(bytes.NewReader([]byte("GET / HTTP")), &out); err == nil {
+		t.Fatal("a TTY-style raw stream should be refused, not misparsed")
+	}
+}
+
+func TestStreamLogsFollowsARealContainer(t *testing.T) {
+	r := integration(t)
+	id := fmt.Sprintf("logs-%d", time.Now().UnixNano())
+	cleanup(t, r, id)
+
+	started, err := r.Start(context.Background(), spec(id, "sh", "-c", "echo to-stdout; echo to-stderr >&2; sleep 0.3"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	err = r.Docker.StreamLogs(ctx, started.ContainerID, time.Time{}, &out)
+	if err != nil && !IsNotFound(err) {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "to-stdout") || !strings.Contains(out.String(), "to-stderr") {
+		t.Fatalf("logs = %q", out.String())
 	}
 }

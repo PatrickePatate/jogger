@@ -16,6 +16,7 @@ import (
 	"github.com/PatrickePatate/jogger/agent/internal/docker"
 	"github.com/PatrickePatate/jogger/agent/internal/enroll"
 	"github.com/PatrickePatate/jogger/agent/internal/events"
+	"github.com/PatrickePatate/jogger/agent/internal/logs"
 	"github.com/PatrickePatate/jogger/agent/internal/telemetry"
 	"github.com/PatrickePatate/jogger/agent/internal/transport"
 )
@@ -73,7 +74,11 @@ func run() error {
 	emitter := events.NewEmitter(func(ctx context.Context, e events.Event) error {
 		return client.Do(ctx, "POST", "/agent/v1/events", e, nil)
 	}, 256)
-	commands.RegisterRunner(dispatcher, runner, emitter.Emit)
+	commands.RegisterRunner(dispatcher, runner, emitter.Emit, func(ctx context.Context, runnerID, containerID string) {
+		logs.Follow(ctx, runner.Docker, containerID, runnerID, func(ctx context.Context, b logs.Batch) error {
+			return client.Do(ctx, "POST", "/agent/v1/runners/"+runnerID+"/logs", b, nil)
+		})
+	})
 	go emitter.Run(ctx)
 	go runner.Watch(ctx, func(x docker.Exit) {
 		emitter.Emit(events.Event{Type: events.ContainerExited, RunnerID: x.RunnerID, Data: map[string]any{"exit_code": x.ExitCode, "oom": x.OOM}})

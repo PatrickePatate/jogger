@@ -217,3 +217,14 @@ Running log of choices made while building, where reality differed from the plan
 - `Spec.Command` (payload `command`) overrides the image's arguments; it exists so tests can use an alpine stand-in and is trusted because it comes from the control plane.
 - **Test environment note:** the integration tests use `alpine:latest` and skip themselves when it is not local. On this dev machine the CLI uses Docker Desktop's socket, not `/var/run/docker.sock`, so run them with `DOCKER_SOCKET=$HOME/.docker/desktop/docker.sock go test ./internal/docker`. CI pulls alpine first. Testcontainers was not used: the plain API client already is the thing under test.
 - Not verified: a real GitHub runner image, and `stats.go` only provides container listing/counting for now (resource figures in the heartbeat are a later task).
+
+## Task 25 — Agent: log shipper
+
+- **Wire format (for Task 27 to implement):** `POST /agent/v1/runners/{runner_id}/logs` with `{"seq": int, "data": string, "eof"?: true}`. `seq` starts at 1 per runner and is gapless; a retry resends the same batch with the same `seq`, so the server must treat a repeated `seq` as success. The last batch has `eof:true` and empty data.
+- **Batches** are cut at 64 KB or every 250 ms, preferably on a line break and never inside a UTF-8 character. Non-UTF-8 bytes would still be replaced by JSON encoding.
+- **`seq` is assigned when a batch is first offered to the server, not when it is cut.** That is what makes dropping safe: batches the server never saw can be discarded under memory pressure without leaving a gap, while the head batch (possibly received, ack lost) is never dropped.
+- **Bounded memory:** `MaxBuffer` (8 MB default). Over the cap, the oldest never-offered batches are dropped and the next batch starts with `[jogger: N bytes of output dropped while the server was unreachable]`.
+- **A rejected batch (4xx other than 429/408) is discarded**, not retried forever; this is also what happens until Task 27 adds the endpoint. Network errors and 5xx/429 retry with backoff.
+- **Source:** the engine log stream (`follow`, stdout+stderr interleaved, demultiplexed from the 8-byte frame headers). The follower starts for each newly created runner container and sends the `eof` batch when the stream ends (container exit). A broken stream resumes with `since = now − 1 s`, so a second of repeated lines is possible but gaps are not.
+- **Known limit:** shipper state (`seq`, buffer) is in memory. If the agent restarts while a runner is alive, that runner's remaining output is not shipped (no follower is started for an `existing` container, because restarting `seq` at 1 would collide with what the server already has). Persisting `seq` is a follow-up if this matters in practice.
+- Docker integration tests include a real container's stdout and stderr both arriving through the stream.
