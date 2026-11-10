@@ -29,6 +29,7 @@ type Config struct {
 	HeartbeatInterval time.Duration // how often capacity is reported
 	DockerSocket      string        // path of the Docker engine socket
 	ConfigFile        string
+	AutoUpdate        bool // replace the binary when the server advertises a verified newer one
 }
 
 // Env looks up an environment variable (os.Getenv in production).
@@ -46,6 +47,7 @@ func Load(args []string, env Env, readFile func(string) ([]byte, error), hostnam
 		interval = fs.Duration("heartbeat-interval", 0, "heartbeat interval")
 		socket   = fs.String("docker-socket", "", "Docker socket path")
 		cfgFile  = fs.String("config", "", "config file path")
+		autoUpd  = fs.Bool("auto-update", false, "install newer agent versions advertised by the server")
 	)
 	if err := fs.Parse(args); err != nil {
 		return Config{}, fmt.Errorf("invalid arguments: %w", err)
@@ -73,6 +75,8 @@ func Load(args []string, env Env, readFile func(string) ([]byte, error), hostnam
 		DockerSocket: pick(*socket, "JOGGER_DOCKER_SOCKET", "docker_socket", "/var/run/docker.sock"),
 		ConfigFile:   file,
 	}
+
+	cfg.AutoUpdate = *autoUpd || truthy(env("JOGGER_AUTO_UPDATE")) || truthy(values["auto_update"])
 
 	cfg.HeartbeatInterval = DefaultInterval
 	if raw := firstNonEmpty(intervalString(*interval), env("JOGGER_HEARTBEAT_INTERVAL"), values["heartbeat_interval"]); raw != "" {
@@ -165,4 +169,13 @@ func readConfigFile(path string, readFile func(string) ([]byte, error)) (map[str
 	}
 
 	return values, nil
+}
+
+func truthy(v string) bool {
+	switch strings.ToLower(strings.TrimSpace(v)) {
+	case "1", "true", "yes", "on":
+		return true
+	}
+
+	return false
 }

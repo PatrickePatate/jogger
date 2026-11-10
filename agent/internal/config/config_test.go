@@ -97,3 +97,21 @@ func TestMissingDefaultFileIsFineButMissingExplicitFileIsNot(t *testing.T) {
 		t.Error("an explicitly requested file that is missing must fail")
 	}
 }
+
+func TestAutoUpdateIsOptIn(t *testing.T) {
+	load := func(args []string, env map[string]string) Config {
+		cfg, err := Load(append([]string{"--server", "https://j.example"}, args...), func(k string) string { return env[k] },
+			func(string) ([]byte, error) { return nil, os.ErrNotExist }, func() (string, error) { return "h", nil })
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		return cfg
+	}
+	if load(nil, nil).AutoUpdate {
+		t.Fatal("auto-update must be off by default")
+	}
+	if !load([]string{"--auto-update"}, nil).AutoUpdate || !load(nil, map[string]string{"JOGGER_AUTO_UPDATE": "true"}).AutoUpdate {
+		t.Fatal("flag and env should enable it")
+	}
+}

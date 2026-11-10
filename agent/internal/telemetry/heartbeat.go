@@ -31,6 +31,10 @@ type Facts struct {
 	MemoryTotalMB *int64   `json:"memory_total_mb,omitempty"`
 	MemoryUsedMB  *int64   `json:"memory_used_mb,omitempty"`
 	DiskFreeGB    *int64   `json:"disk_free_gb,omitempty"`
+	// DindSupported says whether rootless Docker-in-Docker can work on this machine (user namespaces available).
+	DindSupported *bool `json:"dind_supported,omitempty"`
+	// UpdateAvailable holds the newer agent version the server advertises, if any.
+	UpdateAvailable string `json:"update_available,omitempty"`
 }
 
 // Enrollment is the subset sent when enrolling (no "used" figures).
@@ -41,6 +45,9 @@ func (f Facts) Enrollment() map[string]any {
 	}
 	if f.MemoryTotalMB != nil {
 		out["memory_total_mb"] = *f.MemoryTotalMB
+	}
+	if f.DindSupported != nil {
+		out["dind_supported"] = *f.DindSupported
 	}
 	if f.DiskFreeGB != nil {
 		out["disk_free_gb"] = *f.DiskFreeGB
@@ -54,6 +61,8 @@ type Collector struct {
 	ProcDir      string // usually /proc
 	DiskPath     string // filesystem whose free space is reported
 	DockerSocket string
+	// UpdateAvailable, when set, reports a newer agent version (see package update).
+	UpdateAvailable func() string
 
 	prevBusy, prevTotal uint64
 	havePrev            bool
@@ -93,6 +102,12 @@ func (c *Collector) Collect(ctx context.Context) Facts {
 
 	if v, err := DockerVersion(ctx, c.DockerSocket); err == nil {
 		f.DockerVersion = v
+	}
+
+	dind := DindSupported(c.ProcDir)
+	f.DindSupported = &dind
+	if c.UpdateAvailable != nil {
+		f.UpdateAvailable = c.UpdateAvailable()
 	}
 
 	return f

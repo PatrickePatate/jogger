@@ -215,14 +215,14 @@ func TestSpecValidation(t *testing.T) {
 		"no id":      {Image: "x"},
 		"bad id":     {RunnerID: "a/../b", Image: "x"},
 		"no image":   {RunnerID: "a"},
-		"dind":       {RunnerID: "a", Image: "x", DockerMode: "dind"},
+		"bad mode":   {RunnerID: "a", Image: "x", DockerMode: "host"},
 		"neg memory": {RunnerID: "a", Image: "x", MemoryMB: -1},
 	} {
 		if s.Validate() == nil {
 			t.Errorf("%s: expected an error", name)
 		}
 	}
-	if err := (Spec{RunnerID: "a-1", Image: "x", DockerMode: "none"}).Validate(); err != nil {
+	if err := (Spec{RunnerID: "a-1", Image: "x", DockerMode: "dind"}).Validate(); err != nil {
 		t.Errorf("valid spec rejected: %v", err)
 	}
 }

@@ -74,6 +74,9 @@ func (r *Runner) watchOnce(ctx context.Context, since time.Time, oom map[string]
 		last = time.Unix(ev.Time, 0)
 
 		runnerID := ev.Actor.Attributes[LabelRunner]
+		if runnerID == "" {
+			continue // a sidecar or something else of ours: only runner containers are reported
+		}
 		switch ev.Action {
 		case "oom":
 			oom[ev.Actor.ID] = true
@@ -83,8 +86,8 @@ func (r *Runner) watchOnce(ctx context.Context, since time.Time, oom map[string]
 			delete(oom, ev.Actor.ID)
 
 			cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
-			if err := r.Docker.RemoveNetwork(cleanup, networkName(runnerID)); err != nil {
-				slog.Warn("could not remove runner network", "runner", runnerID, "error", err)
+			if err := r.teardown(cleanup, runnerID); err != nil {
+				slog.Warn("could not remove runner network and sidecar", "runner", runnerID, "error", err)
 			}
 			cancel()
 			onExit(exit)

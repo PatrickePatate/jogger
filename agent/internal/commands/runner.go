@@ -37,6 +37,15 @@ func RegisterRunner(d *Dispatcher, r *docker.Runner, emit func(events.Event), on
 		return map[string]any{"container_id": started.ContainerID, "existing": started.Existing}, nil
 	})
 
+	d.Register("host.prune", func(ctx context.Context, _ Command) (map[string]any, error) {
+		res, err := r.Prune(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		return map[string]any{"images_deleted": res.ImagesDeleted, "bytes_freed": res.BytesFreed}, nil
+	})
+
 	d.Register("runner.stop", func(ctx context.Context, cmd Command) (map[string]any, error) {
 		var p struct {
 			RunnerID string `json:"runner_id"`

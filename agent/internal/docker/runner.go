@@ -28,7 +28,11 @@ type Spec struct {
 	Env        map[string]string `json:"env"`
 	DockerMode string            `json:"docker_mode"`
 	Command    []string          `json:"command,omitempty"` // overrides the image's entrypoint arguments
+	DindImage  string            `json:"dind_image,omitempty"`
 }
+
+// DefaultDindImage is the rootless Docker-in-Docker sidecar used when docker_mode is "dind".
+const DefaultDindImage = "docker:dind-rootless"
 
 // Validate rejects specs the agent cannot run safely.
 func (s Spec) Validate() error {
@@ -37,8 +41,8 @@ func (s Spec) Validate() error {
 		return errors.New("runner_id is missing or malformed")
 	case s.Image == "":
 		return errors.New("image is required")
-	case s.DockerMode != "" && s.DockerMode != "none":
-		return fmt.Errorf("docker_mode %q is not supported by this agent version", s.DockerMode)
+	case s.DockerMode != "" && s.DockerMode != "none" && s.DockerMode != "dind":
+		return fmt.Errorf("docker_mode %q is not supported (use \"none\" or \"dind\")", s.DockerMode)
 	case s.CPU < 0 || s.MemoryMB < 0:
 		return errors.New("cpu and memory_mb cannot be negative")
 	}
@@ -93,7 +97,14 @@ func (r *Runner) Start(ctx context.Context, s Spec) (Started, error) {
 		return Started{}, fmt.Errorf("creating network: %w", err)
 	}
 
-	id, err := r.create(ctx, s, net, labels)
+	var id string
+	var err error
+	if s.DockerMode == "dind" {
+		err = r.startDind(ctx, s, net)
+	}
+	if err == nil {
+		id, err = r.create(ctx, s, net, labels)
+	}
 	if err == nil {
 		err = r.Docker.do(ctx, "POST", "/containers/"+id+"/start", nil, nil, nil)
 	}
@@ -122,6 +133,9 @@ func (r *Runner) create(ctx context.Context, s Spec, net string, labels map[stri
 	if s.JITConfig != "" {
 		env = append(env, "JIT_CONFIG="+s.JITConfig)
 	}
+	if s.DockerMode == "dind" {
+		env = append(env, "DOCKER_HOST=tcp://"+dindAlias+":2376", "DOCKER_TLS_VERIFY=1", "DOCKER_CERT_PATH="+certsDir+"/client")
+	}
 
 	host := map[string]any{
 		"NetworkMode": net,
@@ -136,6 +150,10 @@ func (r *Runner) create(ctx context.Context, s Spec, net string, labels map[stri
 	if s.MemoryMB > 0 {
 		host["Memory"] = s.MemoryMB << 20
 		host["MemorySwap"] = s.MemoryMB << 20 // no swap: hitting the limit must OOM-kill, not thrash the host
+	}
+
+	if s.DockerMode == "dind" {
+		host["Mounts"] = []map[string]any{{"Type": "volume", "Source": certsVolume(s.RunnerID), "Target": certsDir, "ReadOnly": true}}
 	}
 
 	body := map[string]any{"Image": s.Image, "Env": env, "Labels": labels, "HostConfig": host}
@@ -200,7 +218,7 @@ func (r *Runner) remove(ctx context.Context, runnerID string) error {
 		}
 	}
 
-	return r.Docker.RemoveNetwork(ctx, networkName(runnerID))
+	return r.teardown(ctx, runnerID)
 }
 
 // find returns the id of the runner's container, or "" when there is none.

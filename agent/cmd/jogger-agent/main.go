@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -19,6 +20,7 @@ import (
 	"github.com/PatrickePatate/jogger/agent/internal/logs"
 	"github.com/PatrickePatate/jogger/agent/internal/telemetry"
 	"github.com/PatrickePatate/jogger/agent/internal/transport"
+	"github.com/PatrickePatate/jogger/agent/internal/update"
 )
 
 func main() {
@@ -43,6 +45,8 @@ func run() error {
 	defer stop()
 
 	collector := telemetry.NewCollector(cfg.DataDir, cfg.DockerSocket)
+	updater := &update.Checker{Current: telemetry.Version}
+	collector.UpdateAvailable = updater.Available
 	newClient := func(credential string) *transport.Client {
 		return transport.New(cfg.Server, credential, telemetry.Version)
 	}
@@ -68,6 +72,7 @@ func run() error {
 
 	slog.Info("agent started", "server", cfg.Server, "host_id", cred.HostID, "version", telemetry.Version, "interval", cfg.HeartbeatInterval)
 	client := newClient(cred.Credential)
+	updater.Fetch = update.FetchHTTP(client)
 
 	dispatcher := commands.NewDispatcher(commands.HTTPAPI{Client: client}, 15*time.Second, 4)
 	runner := &docker.Runner{Docker: docker.New(cfg.DockerSocket), HostID: cred.HostID}
@@ -84,6 +89,7 @@ func run() error {
 		emitter.Emit(events.Event{Type: events.ContainerExited, RunnerID: x.RunnerID, Data: map[string]any{"exit_code": x.ExitCode, "oom": x.OOM}})
 	})
 	go dispatcher.Run(ctx)
+	go housekeeping(ctx, runner, client, updater, cfg.AutoUpdate, stop)
 	if cred.Reverb != nil {
 		pusher := &transport.Pusher{
 			URL:     transport.ReverbURL(cred.Reverb.Scheme, cred.Reverb.Host, cred.Reverb.Port, cred.Reverb.Key),
@@ -112,4 +118,51 @@ func run() error {
 		backoff.Delay, transport.Retryable, transport.Sleep,
 		func(err error) { slog.Warn("heartbeat failed, retrying with backoff", "error", err) },
 	)
+}
+
+// housekeeping periodically removes orphaned containers and checks for a newer agent.
+func housekeeping(ctx context.Context, runner *docker.Runner, client *transport.Client, updater *update.Checker, autoUpdate bool, stop context.CancelFunc) {
+	for {
+		if info, err := updater.Check(ctx); err != nil {
+			slog.Debug("version check failed", "error", err)
+		} else if v := updater.Available(); v != "" {
+			slog.Info("a newer agent is available", "current", telemetry.Version, "latest", v)
+			if autoUpdate {
+				if exe, err := os.Executable(); err != nil {
+					slog.Warn("cannot locate the agent binary, not updating", "error", err)
+				} else if err := update.Apply(ctx, http.DefaultClient, info, exe); err != nil {
+					slog.Warn("self-update failed", "error", err)
+				} else {
+					slog.Info("agent updated, exiting so the supervisor restarts it", "version", v)
+					stop()
+					return
+				}
+			}
+		}
+
+		var resp struct {
+			Runners []string `json:"runners"`
+		}
+		switch err := client.Do(ctx, "GET", "/agent/v1/runners", nil, &resp); {
+		case err != nil:
+			// Without the server's list nothing can be called an orphan, so do nothing (the endpoint arrives later).
+			slog.Debug("runner list unavailable, skipping orphan cleanup", "error", err)
+		default:
+			known := docker.Known{}
+			for _, id := range resp.Runners {
+				known[id] = true
+			}
+			if removed, err := runner.RemoveOrphans(ctx, known, 10*time.Minute, time.Now()); err != nil {
+				slog.Warn("orphan cleanup failed", "error", err)
+			} else if len(removed) > 0 {
+				slog.Info("removed orphaned runners", "runners", removed)
+			}
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(5 * time.Minute):
+		}
+	}
 }

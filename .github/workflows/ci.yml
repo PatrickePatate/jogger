@@ -109,10 +109,18 @@ jobs:
 
       - run: go vet ./...
 
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.64
+          working-directory: agent
+
       # The Docker integration tests skip themselves unless this image is present locally.
       - run: docker pull alpine:latest
 
       - run: go test -race ./...
+
+      - name: Cross-compile (amd64, arm64)
+        run: make build-all
 
       - name: Build (size check)
         run: |

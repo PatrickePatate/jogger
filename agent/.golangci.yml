@@ -1,0 +1,12 @@
+# Defaults (errcheck, govet, staticcheck, unused, ineffassign, gosimple) with the noise that does not matter removed.
+run:
+  timeout: 5m
+issues:
+  exclude-rules:
+    # Tests write fixtures and fake-server responses where a failed write surfaces as a failed assertion anyway.
+    - path: _test\.go
+      linters: [errcheck]
+linters-settings:
+  errcheck:
+    exclude-functions:
+      - (*github.com/coder/websocket.Conn).CloseNow   # best-effort close on a connection already being abandoned
