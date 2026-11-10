@@ -147,7 +147,7 @@
     </div>
 
     @push('scripts')
-        <script>
+        <script nonce="{{ Vite::cspNonce() }}">
             // Realtime smoke test: a ping sent here shows as a toast in every open tab of this page.
             window.addEventListener('DOMContentLoaded', () => {
                 window.Echo.channel('dev.ping').listen('.Pinged', (e) => toast({ type: 'info', message: e.message }));

@@ -2,8 +2,10 @@
 
 use App\Http\Middleware\AuthenticateApiToken;
 use App\Http\Middleware\EnsureSetupComplete;
+use App\Http\Middleware\RejectBrowserRequests;
 use App\Http\Middleware\RequestId;
 use App\Http\Middleware\RequireTokenRole;
+use App\Http\Middleware\SecurityHeaders;
 use App\Support\Http\ApiError;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -22,13 +24,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
         then: function () {
             // Inbound webhooks: no session/CSRF middleware at all (see routes/webhooks.php).
-            Route::group([], base_path('routes/webhooks.php'));
+            Route::middleware(RejectBrowserRequests::class)->group(base_path('routes/webhooks.php'));
             // Agent API: bearer credentials, no session.
-            Route::group([], base_path('routes/agent.php'));
+            Route::middleware(RejectBrowserRequests::class)->group(base_path('routes/agent.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->prepend(RequestId::class);
+        $middleware->append(SecurityHeaders::class);
         $middleware->web(prepend: [EnsureSetupComplete::class]);
         // Token auth must run before the rate limiter so limits are per token, not per IP.
         $middleware->prependToPriorityList(before: ThrottleRequests::class, prepend: AuthenticateApiToken::class);

@@ -15,6 +15,6 @@
         <p>Taking you to GitHub to create the app…</p>
         <button type="submit">Continue to GitHub</button>
     </form>
-    <script>document.getElementById('manifest-form').submit();</script>
+    <script nonce="{{ Vite::cspNonce() }}">document.getElementById('manifest-form').submit();</script>
 </body>
 </html>

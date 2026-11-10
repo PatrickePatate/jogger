@@ -3,7 +3,7 @@
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <title>{{ isset($title) ? $title.' · ' : '' }}{{ config('app.name') }}</title>
 {{-- Apply the saved theme before first paint to avoid a flash. --}}
-<script>
+<script nonce="{{ Vite::cspNonce() }}">
     (function () {
         try {
             var m = localStorage.getItem('theme') || 'system';

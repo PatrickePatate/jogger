@@ -58,6 +58,11 @@ return [
     ],
 
     /*
+    | Send the Content-Security-Policy as report-only (to diagnose a blocked script without breaking the page).
+    */
+    'csp_report_only' => (bool) env('JOGGER_CSP_REPORT_ONLY', false),
+
+    /*
     | Default runner image for new pools.
     */
     'default_runner_image' => env('JOGGER_RUNNER_IMAGE', 'ghcr.io/jogger/jogger-runner:latest'),

@@ -459,3 +459,12 @@ Running log of choices made while building, where reality differed from the plan
 
 - **Task 54 was not performed**: it needs a real runner talking to GitHub through a proxy. `docs/spikes/cache-protocol.md` says so, lists what is known from public sources only, and how to run the spike later.
 - **Decision: no-go for v1.0. Task 55 (cache service) is deferred to v1.1** and nothing was built for it. `JOGGER_CACHE_ENABLED` stays in the config and does nothing.
+
+## Task 56: Security hardening
+
+- `SecurityHeaders` on every response: CSP with a per-request nonce (Vite, Livewire and the three inline scripts carry it), `X-Frame-Options: DENY`, `nosniff`, referrer and permissions policies, HSTS over HTTPS. `script-src` keeps `'unsafe-eval'` because the standard Alpine build evaluates expressions; the Alpine CSP build was not adopted (it would mean rewriting every inline `x-data` expression). `JOGGER_CSP_REPORT_ONLY=true` switches to report-only.
+- **The CSP has not been checked in a browser.** Tests prove the header and the nonces on inline scripts, not that no page triggers a violation (xterm, Echo websockets, Alpine). If something is blocked, set report-only and fix the policy; the browser check belongs to Task 58.
+- `RejectBrowserRequests` on webhook and agent routes: a request with a foreign `Origin` or a cross-site `Sec-Fetch-Site` gets 403 before authentication.
+- `jogger:rotate-key`: re-encrypts GitHub App credentials, secrets, webhook signing secrets and 2FA columns in one transaction, clears the cache, prints the new key (or writes `.env` with `--write`). A test fails if a model gains an `encrypted` cast that the command does not cover. The pending-command payloads noted in Task 48 are still stored unencrypted.
+- `composer audit` and `npm audit --omit=dev`: no advisories. Larastan level 6 clean. Rate limits were not re-reviewed beyond adding one to `/metrics`.
+- `docs/SECURITY.md` written.
