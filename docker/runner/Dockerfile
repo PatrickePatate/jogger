@@ -2,7 +2,7 @@
 # Build from the repository root:  docker build -f docker/runner/Dockerfile docker/runner
 FROM ubuntu:24.04
 
-ARG RUNNER_VERSION=2.328.0
+ARG RUNNER_VERSION=2.338.2
 ARG TARGETARCH
 
 ENV DEBIAN_FRONTEND=noninteractive \

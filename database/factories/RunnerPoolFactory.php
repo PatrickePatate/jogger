@@ -25,7 +25,7 @@ class RunnerPoolFactory extends Factory
             'scope_target' => 'acme',
             'labels' => ['self-hosted', 'linux', 'x64'],
             'allowed_host_labels' => [],
-            'image' => 'ghcr.io/jogger/jogger-runner:latest',
+            'image' => 'ghcr.io/patrickepatate/jogger-runner:latest',
             'min_idle' => 0,
             'max_runners' => 5,
             'idle_ttl_seconds' => 900,

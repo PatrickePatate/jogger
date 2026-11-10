@@ -53,7 +53,7 @@ final class EnrollModal extends Component
             ."  -v jogger-agent-data:/var/lib/jogger-agent \\\n"
             ."  -e JOGGER_SERVER={$server} \\\n"
             ."  -e JOGGER_ENROLL_TOKEN={$this->plainToken} \\\n"
-            .'  ghcr.io/jogger/jogger-agent:latest';
+            .'  ghcr.io/patrickepatate/jogger-agent:latest';
     }
 
     /**

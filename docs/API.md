@@ -92,7 +92,7 @@ curl -X POST https://ci.example.com/api/v1/pools \
     "scope": "repository",
     "scope_target": "acme/api",
     "labels": ["self-hosted", "linux", "x64"],
-    "image": "ghcr.io/jogger/jogger-runner:latest",
+    "image": "ghcr.io/patrickepatate/jogger-runner:latest",
     "max_runners": 5
   }'
 ```

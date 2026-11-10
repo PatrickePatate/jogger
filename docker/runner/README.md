@@ -20,7 +20,7 @@ without `JIT_CONFIG`, the container prints an explanation and exits with status 
 ## Building
 
 ```bash
-docker build -f docker/runner/Dockerfile --build-arg RUNNER_VERSION=2.328.0 -t jogger-runner:dev docker/runner
+docker build -f docker/runner/Dockerfile --build-arg RUNNER_VERSION=2.338.2 -t jogger-runner:dev docker/runner
 ```
 
 `.github/workflows/runner-image.yml` rebuilds the image every week with the latest `actions/runner` release and

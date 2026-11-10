@@ -46,7 +46,7 @@ Used for invitations and alerts.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `JOGGER_RUNNER_IMAGE` | `ghcr.io/jogger/jogger-runner:latest` | Image prefilled for new pools. UI. |
+| `JOGGER_RUNNER_IMAGE` | `ghcr.io/patrickepatate/jogger-runner:latest` | Image prefilled for new pools. UI. |
 | `JOGGER_PROVISION_TIMEOUT` | `180` | Seconds a runner may take to start before it is considered failed. |
 | `JOGGER_HOST_OFFLINE_AFTER` | `30` | Seconds without a heartbeat before a host is marked offline. |
 | `JOGGER_RECONCILE_INTERVAL` | `60` | Seconds between comparisons of Jogger's state with GitHub's. |

@@ -74,7 +74,7 @@ return [
     /*
     | Default runner image for new pools.
     */
-    'default_runner_image' => env('JOGGER_RUNNER_IMAGE', 'ghcr.io/jogger/jogger-runner:latest'),
+    'default_runner_image' => env('JOGGER_RUNNER_IMAGE', 'ghcr.io/patrickepatate/jogger-runner:latest'),
 
     /*
     | Filesystem disk holding job logs.

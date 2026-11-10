@@ -19,7 +19,7 @@ A **host** is a machine that runs your jobs. Each host runs the **Jogger agent**
      -v jogger-agent-data:/var/lib/jogger-agent \
      -e JOGGER_SERVER=https://ci.example.com \
      -e JOGGER_ENROLL_TOKEN=jhe_... \
-     ghcr.io/jogger/jogger-agent:latest
+     ghcr.io/patrickepatate/jogger-agent:latest
    ```
 
 3. The host appears on the Hosts page as **Online** within a few seconds.
@@ -73,7 +73,7 @@ Possible for a trial with the `local-host` compose profile; see [INSTALL.md](INS
 Pull the new image and recreate the container with the same volume and environment (without the enrollment token):
 
 ```bash
-docker pull ghcr.io/jogger/jogger-agent:latest
+docker pull ghcr.io/patrickepatate/jogger-agent:latest
 ```
 
 ```bash
