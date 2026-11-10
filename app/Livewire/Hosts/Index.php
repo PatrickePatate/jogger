@@ -9,6 +9,8 @@ use App\Domain\Hosts\Actions\DrainHost;
 use App\Domain\Hosts\Actions\RevokeHost;
 use App\Domain\Hosts\Enums\HostStatus;
 use App\Domain\Hosts\Models\Host;
+use App\Domain\Runners\Enums\RunnerState;
+use App\Domain\Runners\Models\Runner;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Layout;
@@ -22,9 +24,18 @@ final class Index extends Component
 {
     /** Re-render when any host changes status (the heartbeat poll below covers capacity numbers). */
     #[On('echo-private:hosts,.host.status-changed')]
+    #[On('echo-private:runners,.runner.state-changed')]
     public function refreshHosts(): void
     {
         // The re-render is the point.
+    }
+
+    /** Host whose runners are listed. */
+    public ?string $selected = null;
+
+    public function select(string $id): void
+    {
+        $this->selected = $this->selected === $id ? null : $id;
     }
 
     public function cordon(string $id, CordonHost $cordon): void
@@ -59,6 +70,26 @@ final class Index extends Component
         return view('livewire.hosts.index', [
             // Revoked hosts are history, not infrastructure.
             'hosts' => Host::query()->where('status', '!=', HostStatus::Revoked->value)->orderBy('name')->get(),
+            'counts' => $this->counts(),
+            'runners' => $this->selected === null ? collect() : Runner::query()->where('host_id', $this->selected)
+                ->inState(...RunnerState::present())->with(['pool', 'job'])->orderByDesc('id')->limit(100)->get(),
         ]);
+    }
+
+    /**
+     * Runners with a container on each host, by state.
+     *
+     * @return array<string, array<string, int>>
+     */
+    private function counts(): array
+    {
+        $counts = [];
+        $rows = Runner::query()->inState(...RunnerState::present())->whereNotNull('host_id')
+            ->selectRaw('host_id, state, count(*) as n')->groupBy('host_id', 'state')->toBase()->get();
+        foreach ($rows as $row) {
+            $counts[$row->host_id][$row->state] = (int) $row->n;
+        }
+
+        return $counts;
     }
 }

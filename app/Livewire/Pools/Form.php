@@ -65,6 +65,12 @@ final class Form extends Component
             $this->installation_id = (string) $this->installations()->first()?->id;
             $this->syncTarget();
 
+            // "Create pool for these labels" on the pools page.
+            $wanted = request()->query('labels');
+            if (is_string($wanted) && $wanted !== '' && strlen($wanted) <= 500) {
+                $this->labels = implode(', ', array_filter(array_map('trim', explode(',', $wanted))));
+            }
+
             return;
         }
 

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Livewire\Pools;
 
 use App\Domain\Github\Models\Installation;
+use App\Domain\Jobs\Enums\JobStatus;
+use App\Domain\Jobs\Models\WorkflowJob;
 use App\Domain\Pools\Actions\PausePool;
 use App\Domain\Pools\Models\RunnerPool;
 use App\Domain\Runners\Models\Runner;
@@ -51,6 +53,7 @@ final class Index extends Component
         return view('livewire.pools.index', [
             'pools' => RunnerPool::query()->visibleTo($user)->with('installation')->orderBy('name')->get(),
             'counts' => $this->counts(),
+            'unmatched' => $this->unmatched($user),
             'canCreate' => Installation::query()->visibleTo($user)->get()->contains(fn (Installation $i) => $user->can('createIn', [RunnerPool::class, $i])),
         ]);
     }
@@ -69,6 +72,28 @@ final class Index extends Component
         }
 
         return $counts;
+    }
+
+    /**
+     * Queued jobs no pool serves, grouped by the labels they ask for (order-insensitive), most frequent first.
+     *
+     * @return list<array{labels: list<string>, count: int}>
+     */
+    private function unmatched(User $user): array
+    {
+        $groups = [];
+        $rows = WorkflowJob::query()->visibleTo($user)
+            ->where('status', JobStatus::Queued->value)->where('unmatched_reason', 'like', 'NO_MATCHING_POOL%')
+            ->selectRaw('labels, count(*) as n')->groupBy('labels')->limit(100)->get();
+        foreach ($rows as $row) {
+            $labels = $row->labels;
+            sort($labels);
+            $key = implode(',', $labels);
+            $groups[$key] = ['labels' => $labels, 'count' => ($groups[$key]['count'] ?? 0) + (int) $row->getAttribute('n')];
+        }
+        usort($groups, fn (array $a, array $b) => $b['count'] <=> $a['count']);
+
+        return array_slice($groups, 0, 8);
     }
 
     private function user(): User

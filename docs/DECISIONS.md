@@ -403,3 +403,9 @@ Running log of choices made while building, where reality differed from the plan
 - One Livewire component in the app layout. Opening, closing and arrow/Enter navigation are Alpine only; typing calls the server after a 300 ms debounce. Pages are listed from the routes that exist; resource search starts at two characters, five results per group, through the same `visibleTo` scopes as the pages (hosts for administrators only).
 - Search is `ILIKE '%term%'` without a trigram index: at 10 000 jobs a sequential scan is a few milliseconds. The 200 ms target was not measured at that volume; add a `pg_trgm` index if job counts grow far beyond it.
 - Keyboard behaviour is not covered by a test (no browser tests until Task 58).
+
+## Task 47: Pool and host realtime polish
+
+- Pools page: a callout lists queued jobs whose reason is `NO_MATCHING_POOL`, grouped by label set (label order ignored), up to eight groups, each with "Create pool for these labels", which opens the form with `?labels=` prefilled.
+- Hosts page: each card shows the runners that have a container there (busy / idle / starting / stopping) and expands in place to list them; the page now also re-renders on `runner.state-changed`.
+- Pool meters already followed `runner.state-changed`; a test now covers it.

@@ -9,6 +9,26 @@
         @endif
     </div>
 
+    @if ($unmatched !== [])
+        <section class="rounded-card border border-warning/40 bg-warning/5 p-5" data-testid="unmatched-jobs" aria-labelledby="unmatched-title">
+            <h2 id="unmatched-title" class="flex items-center gap-2 font-semibold"><x-icon name="info" :size="18" />Jobs waiting with no matching pool</h2>
+            <p class="mt-0.5 text-[0.8125rem] text-text-secondary">These queued jobs ask for labels that no active pool serves. They stay queued on GitHub until a pool matches.</p>
+            <ul class="mt-3 divide-y divide-border">
+                @foreach ($unmatched as $group)
+                    <li class="flex flex-wrap items-center justify-between gap-3 py-2" wire:key="unmatched-{{ md5(implode(',', $group['labels'])) }}">
+                        <span class="flex flex-wrap items-center gap-1.5">
+                            <span class="mr-1 font-medium tabular">{{ $group['count'] }} {{ Str::plural('job', $group['count']) }}</span>
+                            @foreach ($group['labels'] as $label)<x-ui.badge>{{ $label }}</x-ui.badge>@endforeach
+                        </span>
+                        @if ($canCreate)
+                            <x-ui.button size="xs" variant="outline" href="{{ route('pools.create', ['labels' => implode(',', $group['labels'])]) }}" wire:navigate>Create pool for these labels</x-ui.button>
+                        @endif
+                    </li>
+                @endforeach
+            </ul>
+        </section>
+    @endif
+
     @if ($pools->isEmpty())
         <x-ui.empty-state icon="cpu" title="No pools yet" description="Create a pool to start running jobs on your hosts.">
             @if ($canCreate)<x-ui.button icon="plus" href="{{ route('pools.create') }}" wire:navigate>New pool</x-ui.button>@endif
