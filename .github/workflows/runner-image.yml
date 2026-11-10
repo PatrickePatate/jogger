@@ -1,0 +1,62 @@
+name: Runner image
+
+on:
+  schedule:
+    - cron: "17 4 * * 1" # weekly: GitHub refuses runners that fall too far behind
+  workflow_dispatch:
+    inputs:
+      runner_version:
+        description: "actions/runner version (empty = latest release)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve runner version
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED: ${{ inputs.runner_version }}
+        run: |
+          version="$REQUESTED"
+          if [ -z "$version" ]; then
+            version="$(gh api repos/actions/runner/releases/latest --jq .tag_name)"
+          fi
+          echo "version=${version#v}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image name
+        id: image
+        env:
+          OWNER: ${{ github.repository_owner }}
+        run: echo "name=ghcr.io/${OWNER,,}/jogger-runner" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: docker/runner
+          file: docker/runner/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            RUNNER_VERSION=${{ steps.version.outputs.version }}
+          tags: |
+            ${{ steps.image.outputs.name }}:${{ steps.version.outputs.version }}
+            ${{ steps.image.outputs.name }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
