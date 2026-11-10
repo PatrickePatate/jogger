@@ -317,3 +317,20 @@ Running log of choices made while building, where reality differed from the plan
 - **`completed` without `in_progress`** links the runner from the completed event's `runner_name` first, then terminates it.
 - **Cancelled before pickup**: `TrimIdleRunnersJob` runs 30 s later and terminates idle runners beyond `queued jobs + min_idle` (newest first, reason `job_cancelled`). A runner still `provisioning` at that moment is left to the idle timeout of Task 35.
 - The runner link is by name (`jogger-…`), falling back to GitHub runner id within the job's pool.
+
+## Task 35 — Stuck-runner reaper and timeouts
+
+- `jogger:reap-runners` every 30 s. Rules, each a conditional transition (so a second run does nothing):
+  - **provisioning > `runner_provision_timeout` (180 s)** → failed `provision_timeout`, `runner.stop` sent, GitHub runner deleted, then the oldest queued job of that pool is scheduled again (which provisions only if the pool is actually short).
+  - **host offline > 5 min, or revoked** → every present runner there → failed `host_lost` (no command is sent to a dead host).
+  - **idle > pool `idle_ttl_seconds`** → terminated `idle_timeout`, oldest first, never below `min_idle`.
+  - **terminating > 5 min without an exit report** → gone (added: otherwise a lost `container_exited` would hold a host "draining" forever).
+- **`PoolDemand::deficit(pool)` = `min_idle` + queued jobs of the pool − runners provisioning or idle.** `ScheduleJob`, `ProvisionRunnerJob` (re-checked when it finally runs), `TrimIdleRunners` and the warm-pool reconcile all use this one number, replacing Task 34's ad hoc count.
+- A job whose runner died mid-job (`host_lost`, crash) is not re-queued: GitHub fails such a job itself and a re-run arrives as a new `queued` event.
+
+## Task 36 — Warm pool and scale policy
+
+- `jogger:reconcile-pools` every 15 s: for each active pool, provision `deficit` runners (at most 10 per pool per pass), stopping at `max_runners`, on no host capacity, or on a rate limit. It provisions synchronously inside the command, not through the queue.
+- A queued job in a warm pool triggers one provisioning immediately (deficit counts the job), so the pool is back at `min_idle` as soon as the job takes an idle runner; no runner is started "for" the job specifically.
+- Scale-down is only the idle timeout; `min_idle` runners are never reaped for idleness, so a warm runner can sit for days. GitHub may expire a long-idle JIT registration; Task 37's reconciler marks such runners failed.
+- Concurrency with webhooks is bounded by the pool row lock in `ProvisionRunner`; the invariant test is Task 38.
