@@ -92,3 +92,26 @@ jobs:
       - run: npm ci
 
       - run: npm run build
+
+  agent:
+    name: Agent (Go)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: agent
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: agent/go.mod
+          cache-dependency-path: agent/go.mod
+
+      - run: go vet ./...
+
+      - run: go test -race ./...
+
+      - name: Build (size check)
+        run: |
+          make build
+          test "$(stat -c %s bin/jogger-agent)" -lt 20971520
