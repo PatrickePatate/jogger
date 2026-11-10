@@ -299,3 +299,21 @@ Running log of choices made while building, where reality differed from the plan
 - **`ProvisionRunnerJob(poolId, jobId?)`**: waiting conditions release the job back to the queue and record a reason on the workflow job (`NO_CAPACITY` 30 s / 20 s, `GITHUB_RATE_LIMITED` for `Retry-After`); real errors retry with backoff up to 3 times; it stops when the workflow job is no longer queued; gives up after 6 h.
 - The host-capacity reservation happens inside the pool lock but two *different* pools provisioning at the same instant can both pick the same nearly-full host. The limits are per container, so the effect is over-subscription, not failure.
 - `ResolvesSecrets::envFor(pool)` is bound to an empty implementation until Phase 8.
+
+## Task 30 — Default runner image
+
+- `docker/runner/Dockerfile`: Ubuntu 24.04, `actions/runner` pinned by `ARG RUNNER_VERSION` (default 2.328.0), Docker CLI + buildx + compose from Docker's apt repository, user `runner` (uid 1001), `tini` as init. No language toolchains.
+- The entrypoint exits 64 with a clear message without `JIT_CONFIG` and unsets it before `exec ./run.sh --jitconfig`.
+- Built and checked locally for **amd64 only** (1.28 GB, `id -u` = 1001, exit 64 without config). **arm64 was not built**; the workflow builds both with QEMU. The workflow passes `actionlint` but has never run, and nothing was pushed to a registry.
+- The weekly workflow resolves the latest runner release itself, because GitHub refuses outdated runners; the Dockerfile default will go stale and only matters for local builds.
+- The image name in `config/jogger.php` (`ghcr.io/jogger/jogger-runner:latest`) is still a placeholder; the workflow pushes to `ghcr.io/<repository owner>/jogger-runner`.
+- A real job has not been run in this image yet (Task 40).
+
+## Task 34 — Webhooks wired to scheduling and teardown
+
+- `HandleWorkflowJob` mirrors the job, then acts on the job's resulting status (not the webhook's `action`, so late events cannot schedule a job that already moved on): queued → `ScheduleJob`; in progress → `AssignJobToRunner`; completed → `TerminateRunner(…, 'completed')`.
+- **Runners are not reserved for jobs.** GitHub gives a job to any matching runner, so `ScheduleJob` only compares counts: it provisions when the pool's waiting runners (provisioning + idle) do not exceed its *other* queued jobs. A redelivered `queued` event therefore starts nothing.
+- **Unmatched**: a `self-hosted` job without a pool gets `unmatched_reason`; a GitHub-hosted job (`ubuntu-latest`) gets neither pool nor reason.
+- **`completed` without `in_progress`** links the runner from the completed event's `runner_name` first, then terminates it.
+- **Cancelled before pickup**: `TrimIdleRunnersJob` runs 30 s later and terminates idle runners beyond `queued jobs + min_idle` (newest first, reason `job_cancelled`). A runner still `provisioning` at that moment is left to the idle timeout of Task 35.
+- The runner link is by name (`jogger-…`), falling back to GitHub runner id within the job's pool.

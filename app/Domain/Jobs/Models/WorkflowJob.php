@@ -20,6 +20,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * Jogger's copy of a GitHub Actions job. (Named WorkflowJob, table workflow_jobs, to stay clear of Laravel's queue "Job".)
+ *
+ * @property list<string> $labels
  */
 #[UseFactory(WorkflowJobFactory::class)]
 class WorkflowJob extends Model
