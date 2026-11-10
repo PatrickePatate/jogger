@@ -24,6 +24,8 @@ use App\Domain\Runners\Actions\ApplyContainerEvent;
 use App\Domain\Runners\Contracts\RunnerCensus;
 use App\Domain\Runners\Contracts\RunnerEvents;
 use App\Domain\Runners\Support\RunnerCount;
+use App\Domain\Secrets\Contracts\ResolvesSecrets;
+use App\Domain\Secrets\NoSecrets as NoPoolSecrets;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -44,7 +46,8 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->bind(RunnerEvents::class, ApplyContainerEvent::class);
         $this->app->bind(RunnerCensus::class, RunnerCount::class);
-        // Placeholder until secrets exist (Phase 8).
+        // Placeholders until secrets exist (Phase 8).
+        $this->app->bind(ResolvesSecrets::class, NoPoolSecrets::class);
         $this->app->bind(SecretSource::class, NoSecrets::class);
 
         $this->app->singleton(RateLimitTracker::class);

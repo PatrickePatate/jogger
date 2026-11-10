@@ -72,11 +72,16 @@ final class CommandsController extends Controller
 
         $final = $data['ok'] ? CommandStatus::Acked : CommandStatus::Failed;
 
+        // The single-use runner credential has no business staying in the table once the command is settled.
+        $payload = $record->payload;
+        unset($payload['jit_config']);
+
         HostCommand::query()
             ->whereKey($record->id)
             ->whereIn('status', [CommandStatus::Pending->value, CommandStatus::Sent->value])
             ->update([
                 'status' => $final->value,
+                'payload' => json_encode($payload),
                 'result' => isset($data['result']) ? json_encode($data['result']) : null,
                 'acked_at' => now(),
                 'updated_at' => now(),
