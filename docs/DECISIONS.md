@@ -448,3 +448,9 @@ Running log of choices made while building, where reality differed from the plan
 - Channels: in-app (always; the bell in the header, administrators only, read state per user), e-mail and generic webhook via rules in Settings → Notifications. Webhook bodies are signed `X-Jogger-Signature-256: sha256=<HMAC-SHA256>` with a per-rule secret shown once. A channel that fails does not stop the others: the error is stored on the rule and on the in-app notice.
 - Mail and webhooks are sent inline by the evaluator (5 s webhook timeout), not queued. Webhook URLs are not restricted to public addresses; only administrators can add them.
 - The dashboard query-budget test now measures the dashboard component alone, since the layout gained the bell (2 queries for administrators).
+
+## Task 53: Settings, retention and audit log UI
+
+- `settings` table (key, JSON value) and a `Settings` service. Saved values are laid over the config at boot (cached forever, dropped on save), so existing code keeps reading `config()`; an unsaved setting leaves the env variable in charge, a saved one wins over it.
+- Editable at Admin → Settings: instance name, default runner image, retention of logs / finished jobs / webhook deliveries, Docker build cache cap per host. Each save records `settings.updated` with old and new values.
+- Admin → Audit log: filter by actor, action and date range; CSV export of exactly the filtered rows.

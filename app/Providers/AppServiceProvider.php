@@ -25,6 +25,7 @@ use App\Domain\Runners\Contracts\RunnerEvents;
 use App\Domain\Runners\Support\RunnerCount;
 use App\Domain\Secrets\Actions\ResolveSecretsForPool;
 use App\Domain\Secrets\Contracts\ResolvesSecrets;
+use App\Domain\Settings\Settings;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -69,6 +70,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Settings saved in the UI override config for the rest of the request.
+        $this->app->make(Settings::class)->apply();
+
         Password::defaults(fn () => Password::min(10));
 
         // Global administrators: Gate::allows('admin'), `can:admin` middleware.
