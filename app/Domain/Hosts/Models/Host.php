@@ -13,6 +13,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * @property list<string> $labels
+ */
 #[UseFactory(HostFactory::class)]
 class Host extends Model
 {

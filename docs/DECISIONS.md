@@ -284,3 +284,9 @@ Running log of choices made while building, where reality differed from the plan
 - **`GET /agent/v1/runners`** now exists and returns every present runner of the host (including provisioning ones), which switches on the agent's orphan cleanup.
 - `RunnerCensus` is now a real count; `job_logs` writes are refused when the runner is placed on a different host; the pool cards show live counts and refresh on runner events.
 - Circular dependency avoided: `DrainHost` → `RunnerCensus` must not resolve to a class that depends on `TransitionRunner`.
+
+## Task 32 — Pool matching and host placement
+
+- **`MatchPool(repository, labels)`**: candidates are pools of the repository's installation that target that repository or its owner (organization scope). A pool matches when its labels contain all the job's labels, **case-insensitively**. Ranking: fewest labels (most specific), then lowest `live / max_runners`, then name. Returns a `PoolMatch` with the pool or a code (`NO_MATCHING_POOL`, `POOL_PAUSED`) and a ≤ 200-character reason for `unmatched_reason`.
+- **A job is only reported as unmatched when it asks for `self-hosted`** (`MatchPool::wantsSelfHosted`); a job with custom labels only and no matching pool is ignored like a GitHub-hosted one, since Jogger cannot tell them apart.
+- **`PickHost(pool)`**: status `online` only; host labels ⊇ `allowed_host_labels`; if the pool's labels name an architecture (`x64`, `arm64`, `arm`) the host's must be one of them; free CPU/memory ≥ the pool's limits (defaults 1 core / 1024 MB when unlimited). Free = total − max(reported usage, reservations of present runners placed there). Picks the host with the most free memory.
