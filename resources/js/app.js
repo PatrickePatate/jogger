@@ -36,3 +36,4 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () 
 
 /** Show a toast from anywhere: toast({ type: 'success', message: 'Saved' }) */
 window.toast = (detail) => window.dispatchEvent(new CustomEvent('toast', { detail }));
+import './log-terminal';

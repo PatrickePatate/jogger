@@ -371,3 +371,17 @@ Running log of choices made while building, where reality differed from the plan
 - **Download**: `GET /jobs/{job}/log/download` and `GET /api/v1/jobs/{id}/logs` stream plain text; `?format=gz` hands out the stored archive once the log is finalized. Text is already masked at ingestion.
 - **Jobs API added here** because the E2E script needs it: `GET /api/v1/jobs` (filters `repository`, `status`, `pool`; cursor pagination, newest first) and `GET /api/v1/jobs/{id}`.
 - **`jogger:prune`** now deletes expired logs (file + row), and completed jobs older than `job_retention_days` together with their log files. Jobs that never completed are kept however old. Log expiry moved here from `jogger:flush-logs`, which only closes idle logs now.
+
+## Task 42 — Jobs index (live)
+
+- Filters (repository, workflow contains, status, pool, host, time range) are `#[Url]` properties, so they combine and survive reload/sharing. Status options are outcome-oriented: queued, no matching pool, running, succeeded, failed (incl. timed out), cancelled.
+- Cursor pagination, 25 per page, ordered by `id` (UUIDv7 = creation order; uses the primary key index).
+- **Live updates**: administrators listen on `private-jobs`; that channel is admin-only, so everyone else gets `wire:poll.5s` instead of a subscription that would be refused. A per-repository subscription for non-admins is a possible refinement.
+- The 10k-job benchmark is a test (first page under 500 ms including Livewire rendering).
+
+## Task 43 — Job detail with stepper and live log terminal
+
+- Stepper Queued → Provisioning → Running → Completed with durations; the provisioning step turns failed for "no matching pool" and when the pool's newest runner since the job was queued failed to start. The page listens on `private-job.{id}` and also polls every 5 s while the job is open (runner state and running durations have no job-channel event).
+- **Log viewer** (`resources/js/log-terminal.js`, xterm.js + fit + search addons): loads the last 512 KB of stored log, then follows `log.chunk`. Merge rule: stored text ends at `last_seq`; only chunks with a higher `(seq, part)` are written. Live chunks received while a fetch is in flight are held back. After a websocket reconnect it catches up by byte offset. 50 000-line scrollback; "Load earlier lines" rebuilds the terminal from further back (a terminal cannot prepend).
+- **Not verified in a browser.** The Livewire side is tested; the JavaScript builds but has not been exercised against a real stream, so ANSI rendering, the merge on reload and the 1-second latency are unproven until the browser tests of Task 58 or a manual run.
+- Bundle grew to about 460 KB (120 KB gzipped) because xterm is in the main entry; splitting it into a lazily loaded chunk is an easy follow-up.

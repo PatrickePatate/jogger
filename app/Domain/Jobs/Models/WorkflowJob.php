@@ -7,6 +7,7 @@ namespace App\Domain\Jobs\Models;
 use App\Domain\Github\Models\Repository;
 use App\Domain\Jobs\Enums\JobConclusion;
 use App\Domain\Jobs\Enums\JobStatus;
+use App\Domain\Pools\Models\RunnerPool;
 use App\Models\User;
 use App\Support\Concerns\HasUuid7;
 use App\Support\Pg\PgTextArray;
@@ -49,6 +50,14 @@ class WorkflowJob extends Model
     public function repository(): BelongsTo
     {
         return $this->belongsTo(Repository::class);
+    }
+
+    /**
+     * @return BelongsTo<RunnerPool, $this>
+     */
+    public function pool(): BelongsTo
+    {
+        return $this->belongsTo(RunnerPool::class, 'pool_id')->withTrashed();
     }
 
     /**
