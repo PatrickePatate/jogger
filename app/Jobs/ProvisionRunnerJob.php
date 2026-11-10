@@ -8,6 +8,7 @@ use App\Domain\Jobs\Enums\JobStatus;
 use App\Domain\Jobs\Models\WorkflowJob;
 use App\Domain\Pools\Data\PoolMatch;
 use App\Domain\Pools\Models\RunnerPool;
+use App\Domain\Pools\PoolDemand;
 use App\Domain\Runners\Actions\ProvisionRunner;
 use App\Support\Exceptions\GithubRateLimited;
 use App\Support\Exceptions\HostUnavailable;
@@ -42,13 +43,20 @@ final class ProvisionRunnerJob implements ShouldQueue
         return [5, 30, 120];
     }
 
-    public function handle(ProvisionRunner $provision): void
+    public function handle(ProvisionRunner $provision, PoolDemand $demand): void
     {
         $pool = RunnerPool::query()->with('installation')->find($this->poolId);
         $job = $this->jobId !== null ? WorkflowJob::query()->find($this->jobId) : null;
 
         // The job was picked up, cancelled or deleted while this waited.
         if ($pool === null || ($this->jobId !== null && ($job === null || $job->status !== JobStatus::Queued))) {
+            return;
+        }
+
+        // Someone else (another job's runner, the warm pool) already covered the need while this waited.
+        if ($demand->deficit($pool) <= 0) {
+            $job?->forceFill(['unmatched_reason' => null])->save();
+
             return;
         }
 

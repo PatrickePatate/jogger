@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Pools\Actions;
 
-use App\Domain\Jobs\Enums\JobStatus;
-use App\Domain\Jobs\Models\WorkflowJob;
 use App\Domain\Pools\Models\RunnerPool;
+use App\Domain\Pools\PoolDemand;
 use App\Domain\Runners\Actions\TerminateRunner;
 use App\Domain\Runners\Enums\RunnerState;
 use App\Domain\Runners\Models\Runner;
@@ -17,14 +16,12 @@ use App\Domain\Runners\Models\Runner;
  */
 final class TrimIdleRunners
 {
-    public function __construct(private readonly TerminateRunner $terminate) {}
+    public function __construct(private readonly TerminateRunner $terminate, private readonly PoolDemand $demand) {}
 
     /** @return int how many runners were terminated */
     public function __invoke(RunnerPool $pool, string $reason = 'job_cancelled'): int
     {
-        $wanted = $pool->min_idle + WorkflowJob::query()->where('pool_id', $pool->id)->where('status', JobStatus::Queued->value)->count();
-        $waiting = Runner::query()->where('pool_id', $pool->id)->inState(RunnerState::Provisioning, RunnerState::Idle)->count();
-        $surplus = $waiting - $wanted;
+        $surplus = -$this->demand->deficit($pool);
         if ($surplus <= 0) {
             return 0;
         }

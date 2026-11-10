@@ -8,8 +8,7 @@ use App\Domain\Jobs\Enums\JobStatus;
 use App\Domain\Jobs\Models\WorkflowJob;
 use App\Domain\Pools\Actions\MatchPool;
 use App\Domain\Pools\Models\RunnerPool;
-use App\Domain\Runners\Enums\RunnerState;
-use App\Domain\Runners\Models\Runner;
+use App\Domain\Pools\PoolDemand;
 use App\Jobs\ProvisionRunnerJob;
 
 /**
@@ -19,7 +18,7 @@ use App\Jobs\ProvisionRunnerJob;
  */
 final class ScheduleJob
 {
-    public function __construct(private readonly MatchPool $match) {}
+    public function __construct(private readonly MatchPool $match, private readonly PoolDemand $demand) {}
 
     /**
      * @return RunnerPool|null the pool the job was assigned to
@@ -45,19 +44,10 @@ final class ScheduleJob
         $pool = $result->pool;
         $job->forceFill(['pool_id' => $pool->id, 'unmatched_reason' => null])->save();
 
-        if ($this->spareRunners($pool, $job) <= 0) {
+        if ($this->demand->deficit($pool) > 0) {
             ProvisionRunnerJob::dispatch($pool->id, $job->id);
         }
 
         return $pool;
-    }
-
-    /** Runners of the pool that are waiting (or about to wait) for a job, minus the other jobs already waiting for them. */
-    private function spareRunners(RunnerPool $pool, WorkflowJob $job): int
-    {
-        $waitingRunners = Runner::query()->where('pool_id', $pool->id)->inState(RunnerState::Provisioning, RunnerState::Idle)->count();
-        $waitingJobs = WorkflowJob::query()->where('pool_id', $pool->id)->where('status', JobStatus::Queued->value)->whereKeyNot($job->id)->count();
-
-        return $waitingRunners - $waitingJobs;
     }
 }

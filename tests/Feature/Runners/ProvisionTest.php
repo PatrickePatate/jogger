@@ -10,6 +10,7 @@ use App\Domain\Hosts\Models\Host;
 use App\Domain\Hosts\Models\HostCommand;
 use App\Domain\Jobs\Models\WorkflowJob;
 use App\Domain\Pools\Models\RunnerPool;
+use App\Domain\Pools\PoolDemand;
 use App\Domain\Runners\Actions\ProvisionRunner;
 use App\Domain\Runners\Enums\RunnerState;
 use App\Domain\Runners\Models\Runner;
@@ -117,7 +118,7 @@ class ProvisionTest extends TestCase
     public function test_no_host_keeps_the_job_queued_with_a_reason_and_retries(): void
     {
         $this->host->update(['status' => 'offline']);
-        $job = WorkflowJob::factory()->create();
+        $job = WorkflowJob::factory()->create(['pool_id' => $this->pool->id]);
 
         try {
             app(ProvisionRunner::class)($this->pool);
@@ -127,7 +128,7 @@ class ProvisionTest extends TestCase
         $this->assertSame(0, Runner::query()->count());
 
         $queued = (new ProvisionRunnerJob($this->pool->id, $job->id))->withFakeQueueInteractions();
-        $queued->handle(app(ProvisionRunner::class));
+        $queued->handle(app(ProvisionRunner::class), app(PoolDemand::class));
         $queued->assertReleased(30);
         $this->assertStringStartsWith('NO_CAPACITY:', (string) $job->refresh()->unmatched_reason);
         $this->assertSame('queued', $job->status->value);
@@ -135,7 +136,7 @@ class ProvisionTest extends TestCase
         // The host comes back: the retry succeeds and the reason is cleared.
         $this->host->update(['status' => 'online']);
         $retry = (new ProvisionRunnerJob($this->pool->id, $job->id))->withFakeQueueInteractions();
-        $retry->handle(app(ProvisionRunner::class));
+        $retry->handle(app(ProvisionRunner::class), app(PoolDemand::class));
         $retry->assertNotReleased();
         $this->assertNull($job->refresh()->unmatched_reason);
         $this->assertSame(1, Runner::query()->live()->count());
@@ -143,24 +144,24 @@ class ProvisionTest extends TestCase
 
     public function test_the_job_waits_on_rate_limits_and_full_pools_and_stops_for_finished_jobs(): void
     {
-        $job = WorkflowJob::factory()->create();
+        $job = WorkflowJob::factory()->create(['pool_id' => $this->pool->id]);
 
         $this->github->failNextWith(new GithubRateLimited('slow down', 90));
         $limited = (new ProvisionRunnerJob($this->pool->id, $job->id))->withFakeQueueInteractions();
-        $limited->handle(app(ProvisionRunner::class));
+        $limited->handle(app(ProvisionRunner::class), app(PoolDemand::class));
         $limited->assertReleased(90);
         $this->assertStringStartsWith('GITHUB_RATE_LIMITED:', (string) $job->refresh()->unmatched_reason);
         $this->assertSame(0, Runner::query()->live()->count());
 
         Runner::factory()->count(2)->create(['pool_id' => $this->pool->id, 'state' => RunnerState::Busy]);
         $full = (new ProvisionRunnerJob($this->pool->id, $job->id))->withFakeQueueInteractions();
-        $full->handle(app(ProvisionRunner::class));
+        $full->handle(app(ProvisionRunner::class), app(PoolDemand::class));
         $full->assertReleased(20);
         $this->assertStringContainsString('maximum', (string) $job->refresh()->unmatched_reason);
 
         $done = WorkflowJob::factory()->running()->create();
         $skip = (new ProvisionRunnerJob($this->pool->id, $done->id))->withFakeQueueInteractions();
-        $skip->handle(app(ProvisionRunner::class));
+        $skip->handle(app(ProvisionRunner::class), app(PoolDemand::class));
         $skip->assertNotReleased();
         $this->github->assertCalled('generateJitConfig', 1);
     }
