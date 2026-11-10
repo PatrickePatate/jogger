@@ -262,3 +262,15 @@ Running log of choices made while building, where reality differed from the plan
 - **Revoke** nulls the credential hash, sets `revoked_at`, fails undelivered commands (`host_revoked`). "Disconnect its channel" is met by denial, not a kick: every agent HTTP call and channel authorization looks the host up, so both fail at once; an already-open socket stays connected until it drops but only carries hints the agent can no longer act on. Revoked hosts are hidden from the Hosts page.
 - **Local host**: `JOGGER_LOCAL_HOST=true` plus a shared `JOGGER_LOCAL_HOST_TOKEN` (`jhe_` + ≥ 32 chars) in `.env`. `jogger:install` (migrate + this) registers that value as a one-time enrollment token named `local` (24 h window, re-run extends it); the compose `agent` service (profile `local-host`) passes it as `JOGGER_ENROLL_TOKEN`. Off by default.
 - **`docker/compose/docker-compose.yml` is an initial draft**: image names are placeholders, the app command falls back to `artisan serve`, and nothing has been run from it. The packaging tasks own making it real. The agent container needs `DOCKER_GID` to match the socket's group.
+
+## Task 29 — Runner pools: model and management UI
+
+- **One rule set (`PoolRules`) for the form and the API**, keyed by column names. `CreatePool`/`UpdatePool` validate themselves, so no caller can skip the rules. Where a pool registers (installation, scope, target) is immutable after creation.
+- **Visibility and roles**: a pool is visible through a direct team grant (grant type `pool`) *or* a grant on its installation; the effective role is the higher of the two. Viewers see, operators create/edit/pause. Creating requires operator on the installation. The Teams admin page does not offer pools as grantables yet.
+- **Public repository** (repository scope, `private=false`): creation fails with a `confirm_public` error unless `confirm_public=true`; the form shows a blocking warning with a checkbox. Organization-scope pools are not checked for public repositories inside the organization.
+- **Organization scope must target the installation's own account**; repository scope must be a repository synced for that installation.
+- **Name is unique per installation among non-deleted pools** (partial unique index) and checked in validation.
+- **Image regex** accepts `registry[:port]/path[:tag][@sha256:…]`; it is a syntax check only.
+- **API**: `GET /api/v1/pools`, `GET /api/v1/pools/{id}`, `POST`, `PATCH` (operator token + operator role on the pool). `status` is patchable (`active`/`paused`). No DELETE yet.
+- Pool cards show the `<x-pool-meter>` with zero counts until runners exist (Task 31).
+- `workflow_jobs.pool_id` now has its foreign key (`ON DELETE SET NULL`).

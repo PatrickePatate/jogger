@@ -18,6 +18,8 @@ use App\Domain\Hosts\Contracts\HostDriver;
 use App\Domain\Hosts\Drivers\AgentHostDriver;
 use App\Domain\Jobs\Logs\NoSecrets;
 use App\Domain\Jobs\Logs\SecretSource;
+use App\Domain\Pools\Models\RunnerPool;
+use App\Domain\Pools\Policies\RunnerPoolPolicy;
 use App\Domain\Runners\Contracts\RunnerCensus;
 use App\Domain\Runners\Contracts\RunnerEvents;
 use App\Domain\Runners\Support\LogRunnerEvents;
@@ -70,6 +72,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Global administrators: Gate::allows('admin'), `can:admin` middleware.
         Gate::define('admin', fn ($user) => $user->isAdmin());
+        Gate::policy(RunnerPool::class, RunnerPoolPolicy::class);
 
         // 120 requests/minute per API token (per IP when unauthenticated).
         RateLimiter::for('api', function (Request $request) {
