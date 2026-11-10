@@ -4,13 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Agent;
 
+use App\Domain\Hosts\Actions\ApplyCommandResult;
 use App\Domain\Hosts\Enums\CommandStatus;
 use App\Domain\Hosts\Models\Host;
 use App\Domain\Hosts\Models\HostCommand;
-use App\Domain\Runners\Actions\TerminateRunner;
-use App\Domain\Runners\Actions\TransitionRunner;
-use App\Domain\Runners\Enums\RunnerState;
-use App\Domain\Runners\Models\Runner;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -58,7 +55,7 @@ final class CommandsController extends Controller
     }
 
     /** The agent reports the outcome of a command. Re-sending the same ack is harmless. */
-    public function ack(Request $request, string $command): JsonResponse
+    public function ack(Request $request, string $command, ApplyCommandResult $apply): JsonResponse
     {
         /** @var Host $host */
         $host = $request->attributes->get('host');
@@ -80,7 +77,7 @@ final class CommandsController extends Controller
         $payload = $record->payload;
         unset($payload['jit_config']);
 
-        HostCommand::query()
+        $settled = HostCommand::query()
             ->whereKey($record->id)
             ->whereIn('status', [CommandStatus::Pending->value, CommandStatus::Sent->value])
             ->update([
@@ -91,13 +88,9 @@ final class CommandsController extends Controller
                 'updated_at' => now(),
             ]);
 
-        // A runner whose container could not be started must not hold its slot until the provision timeout.
-        if (! $data['ok'] && $record->type === 'runner.start' && Str::isUuid((string) ($payload['runner_id'] ?? ''))) {
-            $runner = Runner::query()->whereKey($payload['runner_id'])->where('host_id', $host->id)->first();
-            if ($runner !== null && $runner->state === RunnerState::Provisioning) {
-                app(TransitionRunner::class)($runner, RunnerState::Failed, ['exit_reason' => 'start_failed']);
-                app(TerminateRunner::class)->deregister($runner);
-            }
+        // Only the ack that settled the command has consequences; a repeated ack is just answered.
+        if ($settled > 0) {
+            $apply($host, $record, (bool) $data['ok'], $data['result'] ?? null);
         }
 
         return response()->json(['id' => $record->id, 'status' => $record->refresh()->status->value]);

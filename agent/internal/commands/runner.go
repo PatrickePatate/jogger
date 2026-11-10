@@ -37,6 +37,21 @@ func RegisterRunner(d *Dispatcher, r *docker.Runner, emit func(events.Event), on
 		return map[string]any{"container_id": started.ContainerID, "existing": started.Existing}, nil
 	})
 
+	// image.pull warms a host's image cache ahead of the first runner; runner.start pulls on demand anyway.
+	d.Register("image.pull", func(ctx context.Context, cmd Command) (map[string]any, error) {
+		var p struct {
+			Image string `json:"image"`
+		}
+		if err := decode(cmd.Payload, &p); err != nil || p.Image == "" {
+			return nil, errors.New("invalid image.pull payload: image is required")
+		}
+		if err := r.Docker.Pull(ctx, p.Image); err != nil {
+			return nil, err
+		}
+
+		return map[string]any{"image": p.Image}, nil
+	})
+
 	d.Register("host.prune", func(ctx context.Context, _ Command) (map[string]any, error) {
 		res, err := r.Prune(ctx)
 		if err != nil {

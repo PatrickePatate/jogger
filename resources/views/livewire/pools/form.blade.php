@@ -58,6 +58,31 @@
             </div>
         </x-ui.card>
 
+        @if ($poolId)
+            <x-ui.card title="Image on hosts" description="Hosts download the image ahead of time so the first job starts quickly." wire:poll.5s>
+                <x-slot:actions><x-ui.button size="xs" variant="outline" wire:click="pullImage">Pull again</x-ui.button></x-slot:actions>
+                @if ($images->isEmpty())
+                    <p class="text-[0.8125rem] text-text-secondary">No host has been asked to pull this image yet. A host pulls it when its first runner starts.</p>
+                @else
+                    <ul class="divide-y divide-border text-[0.8125rem]">
+                        @foreach ($images as $image)
+                            <li class="flex flex-wrap items-center justify-between gap-2 py-2" wire:key="image-{{ $image->id }}">
+                                <span class="font-medium">{{ $image->host->name }}</span>
+                                @if ($image->status === 'ready')
+                                    <x-ui.badge tone="success" icon="check-circle">Ready</x-ui.badge>
+                                @elseif ($image->status === 'failed')
+                                    <x-ui.badge tone="error" icon="x-circle">Failed</x-ui.badge>
+                                    <p class="w-full break-words font-mono text-[0.75rem] text-error">{{ $image->error }}</p>
+                                @else
+                                    <x-ui.badge tone="neutral" icon="clock">Pulling…</x-ui.badge>
+                                @endif
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+            </x-ui.card>
+        @endif
+
         <x-ui.card title="Capacity">
             <div class="grid gap-4 sm:grid-cols-3">
                 <x-ui.input label="Maximum runners" name="max_runners" type="number" min="1" wire:model.blur="max_runners" :error="$errors->first('max_runners')" />

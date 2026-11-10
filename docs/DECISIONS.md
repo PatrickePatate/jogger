@@ -349,3 +349,12 @@ Running log of choices made while building, where reality differed from the plan
 - **Failure reasons** now in use — runners: `jit_failed`, `dispatch_failed`, `start_failed`, `provision_timeout`, `host_lost`, `github_missing`, `oom`, `container_exited`, plus the normal `completed`, `idle_timeout`, `job_cancelled`, `terminated`; jobs (`unmatched_reason`): `NO_MATCHING_POOL`, `POOL_PAUSED`, `NO_CAPACITY`, `GITHUB_RATE_LIMITED`.
 - **Concurrency test** forks 10 processes × 5 provisioning attempts against a pool with `max_runners = 5`, 20 iterations, each child on its own connection: always exactly 5 runners. It needs `pcntl` (skipped otherwise), commits its rows and truncates the runner/pool/host/installation tables before and after, so it must not run in parallel with other tests on the same database.
 - **Lost ack**: the server re-offers the same command id after `REDELIVER_AFTER`; "one container" then rests on the agent's idempotency (tested in Go in Tasks 23-24), not re-tested end to end here.
+
+## Task 39 — Image management
+
+- **`host_images`** (host, image, `pending`/`ready`/`failed`, error, command id). `EnsureImageOnHosts(pool)` sends `image.pull {image}` to every online, cordoned or draining host carrying the pool's `allowed_host_labels`, skipping hosts where the image is already ready or on its way. It runs when a pool is created and when its image or host labels change; "Pull again" in the pool form forces it everywhere.
+- **Agent**: new `image.pull` handler (calls the existing `Pull`). Agents older than this commit answer `unsupported`, which shows as a failed pull; harmless.
+- **Results** come back through the command ack, now handled by `ApplyCommandResult` (also home of the `runner.start` failure rule). Only the ack that settles a command has effects.
+- **A failed pull blocks nothing**: it is shown per host with the error, and `PickHost` merely prefers hosts whose image is `ready` (then most free memory). With no warm host it falls back to any fitting host, which pulls when the runner starts.
+- **Not done: private registry credentials.** The secrets store does not exist yet (Phase 8), so pulls are anonymous; the payload has room for an auth field later. `ready` also goes stale if someone prunes images on the host (`host.prune` removes only dangling images, so normally it holds).
+- A host that enrolls after the pool was saved gets no pre-pull until the pool's image changes or someone clicks "Pull again".

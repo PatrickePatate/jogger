@@ -13,6 +13,8 @@ use Illuminate\Validation\ValidationException;
 
 final class CreatePool
 {
+    public function __construct(private readonly EnsureImageOnHosts $images) {}
+
     /**
      * @param  array<string, mixed>  $input  column => value, see PoolRules
      *
@@ -27,6 +29,9 @@ final class CreatePool
         $pool = RunnerPool::query()->create(Arr::except($data, ['confirm_public']));
         Audit::record('pool.created', $pool, ['name' => $pool->name, 'public_confirmed' => (bool) ($data['confirm_public'] ?? false)]);
 
-        return $pool->refresh();
+        $pool->refresh();
+        ($this->images)($pool);
+
+        return $pool;
     }
 }

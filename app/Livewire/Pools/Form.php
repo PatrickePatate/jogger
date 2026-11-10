@@ -7,7 +7,9 @@ namespace App\Livewire\Pools;
 use App\Domain\Github\Enums\ScopeType;
 use App\Domain\Github\Models\Installation;
 use App\Domain\Github\Models\Repository;
+use App\Domain\Hosts\Models\HostImage;
 use App\Domain\Pools\Actions\CreatePool;
+use App\Domain\Pools\Actions\EnsureImageOnHosts;
 use App\Domain\Pools\Actions\UpdatePool;
 use App\Domain\Pools\Enums\DockerMode;
 use App\Domain\Pools\Models\RunnerPool;
@@ -131,6 +133,17 @@ final class Form extends Component
         $this->redirectRoute('pools.index', navigate: true);
     }
 
+    /** Ask every eligible host to pull the image again (refreshes a moving tag, retries failures). */
+    public function pullImage(EnsureImageOnHosts $ensure): void
+    {
+        $record = $this->record();
+        abort_if($record === null, 404);
+        $this->authorize('update', $record);
+
+        $count = $ensure($record, force: true);
+        $this->dispatch('toast', type: 'success', message: $count === 0 ? 'No host is available to pull the image.' : "Pull requested on {$count} host(s).");
+    }
+
     /** True when the chosen repository is public, which needs an explicit confirmation before saving. */
     public function targetsPublicRepository(): bool
     {
@@ -146,6 +159,8 @@ final class Form extends Component
                 ? Repository::query()->where('installation_id', $this->installation_id)->orderBy('full_name')->limit(500)->pluck('full_name')
                 : collect(),
             'dockerModes' => DockerMode::cases(),
+            'images' => $this->poolId === null ? collect() : HostImage::query()->with('host')
+                ->where('image', $this->record()?->image)->get()->filter(fn (HostImage $i) => $i->host !== null)->sortBy('host.name')->values(),
             'publicWarning' => $this->targetsPublicRepository() ? PoolRules::publicWarning($this->scope_target) : null,
         ])->title($this->poolId ? 'Edit pool' : 'New pool');
     }

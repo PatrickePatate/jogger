@@ -6,6 +6,7 @@ namespace App\Domain\Hosts\Actions;
 
 use App\Domain\Hosts\Enums\HostStatus;
 use App\Domain\Hosts\Models\Host;
+use App\Domain\Hosts\Models\HostImage;
 use App\Domain\Pools\Models\RunnerPool;
 use App\Domain\Runners\Enums\RunnerState;
 use Illuminate\Support\Facades\DB;
@@ -13,7 +14,8 @@ use Illuminate\Support\Facades\DB;
 /**
  * Chooses the host for a new runner of a pool: online (so not cordoned, draining, offline or revoked), carrying
  * the pool's required host labels, of the architecture the pool's labels name, and with room for the runner.
- * Among those, the one with the most free memory. Null when no host qualifies.
+ * Among those, hosts that already have the pool's image come first, then the one with the most free memory.
+ * Null when no host qualifies.
  */
 final class PickHost
 {
@@ -44,8 +46,11 @@ final class PickHost
             ->selectRaw('runners.host_id, sum(coalesce(runner_pools.cpu_limit, ?)) as cpu, sum(coalesce(runner_pools.memory_limit_mb, ?)) as memory', [self::DEFAULT_CPU, self::DEFAULT_MEMORY_MB])
             ->get()->keyBy('host_id');
 
+        // Hosts that already hold the image start a runner in seconds; the others must download it first.
+        $warm = HostImage::query()->where('image', $pool->image)->where('status', HostImage::READY)->pluck('host_id')->flip();
+
         $best = null;
-        $bestFree = -1.0;
+        $bestScore = [-1, -1.0];
 
         $hosts = Host::query()->where('status', HostStatus::Online->value)->whereKeyNot($except)->orderBy('name')->get();
         foreach ($hosts as $host) {
@@ -62,9 +67,10 @@ final class PickHost
                 continue;
             }
 
-            if ($freeMemory > $bestFree) {
+            $score = [$warm->has($host->id) ? 1 : 0, $freeMemory];
+            if ($score > $bestScore) {
                 $best = $host;
-                $bestFree = $freeMemory;
+                $bestScore = $score;
             }
         }
 

@@ -13,6 +13,8 @@ use Illuminate\Validation\ValidationException;
 
 final class UpdatePool
 {
+    public function __construct(private readonly EnsureImageOnHosts $images) {}
+
     /**
      * Partial update. Where the pool registers (installation, scope) cannot change: create a new pool instead.
      *
@@ -31,6 +33,9 @@ final class UpdatePool
         if ($changed !== []) {
             $pool->save();
             Audit::record('pool.updated', $pool, ['name' => $pool->name, 'changed' => $changed]);
+            if (array_intersect($changed, ['image', 'allowed_host_labels']) !== []) {
+                ($this->images)($pool);
+            }
         }
 
         return $pool;
