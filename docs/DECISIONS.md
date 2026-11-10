@@ -454,3 +454,8 @@ Running log of choices made while building, where reality differed from the plan
 - `settings` table (key, JSON value) and a `Settings` service. Saved values are laid over the config at boot (cached forever, dropped on save), so existing code keeps reading `config()`; an unsaved setting leaves the env variable in charge, a saved one wins over it.
 - Editable at Admin → Settings: instance name, default runner image, retention of logs / finished jobs / webhook deliveries, Docker build cache cap per host. Each save records `settings.updated` with old and new values.
 - Admin → Audit log: filter by actor, action and date range; CSV export of exactly the filtered rows.
+
+## Tasks 54 and 55: cache protocol spike and cache service
+
+- **Task 54 was not performed**: it needs a real runner talking to GitHub through a proxy. `docs/spikes/cache-protocol.md` says so, lists what is known from public sources only, and how to run the spike later.
+- **Decision: no-go for v1.0. Task 55 (cache service) is deferred to v1.1** and nothing was built for it. `JOGGER_CACHE_ENABLED` stays in the config and does nothing.
