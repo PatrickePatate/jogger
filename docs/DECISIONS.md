@@ -196,3 +196,12 @@ Running log of choices made while building, where reality differed from the plan
 - **Verified live** against the real server: enrolled with a token (credential file mode 0600), host went `online` with real CPU/memory/disk/Docker 29.9.2 figures, restart without a token worked, revoking the host made the agent exit with the revoked message, and with the server down the agent logged retries at growing intervals. Binary: 6 MB with `-ldflags "-s -w"` (limit 20 MB).
 - CI gets an `agent` job (vet, `go test -race`, build + size check). `agent/bin/` is git-ignored. No Docker image yet (Task 57).
 - A leftover empty-ish temp data directory from the live check exists under `/tmp` (my cleanup of it was blocked by a safety check); it is harmless.
+
+## Task 23 — Agent: Reverb client and command pipeline
+
+- **The agent depends on `github.com/coder/websocket`** (its first third-party module). A hand-rolled RFC 6455 client was not worth the risk; the library is small, maintained and context-aware.
+- **The socket is a hint, polling is the delivery.** `Pusher.Run` reconnects forever with the shared backoff and never fails the agent; every (re)subscription also triggers a fetch so nothing sent while disconnected waits for the 15 s poll. A silent socket for `2 × activity_timeout + 10 s` is treated as dead.
+- **Execution is once per command id, in memory.** The dispatcher remembers the last 2048 ids. A redelivery of a running command is ignored; a redelivery of a finished one repeats the cached ack (that is how a lost ack heals) without re-running the handler. After an agent restart the memory is gone, so handlers must still be idempotent (Task 24 keys on the runner id).
+- **Failure shapes:** unknown type → `ok:false, result:{error:"unsupported", type}`; handler error or panic → `ok:false, result:{error}`. Both are final acks, so the server does not redeliver them forever.
+- `main.go` starts the dispatcher with no handlers yet; Task 24 registers `runner.start` / `runner.stop`. Until then every command is acked `unsupported`.
+- Not exercised: a real Reverb server (tests use a fake Pusher endpoint). Worth a manual check once Task 24 gives the agent something to do.

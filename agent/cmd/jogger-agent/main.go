@@ -9,7 +9,9 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
+	"github.com/PatrickePatate/jogger/agent/internal/commands"
 	"github.com/PatrickePatate/jogger/agent/internal/config"
 	"github.com/PatrickePatate/jogger/agent/internal/enroll"
 	"github.com/PatrickePatate/jogger/agent/internal/telemetry"
@@ -63,6 +65,29 @@ func run() error {
 
 	slog.Info("agent started", "server", cfg.Server, "host_id", cred.HostID, "version", telemetry.Version, "interval", cfg.HeartbeatInterval)
 	client := newClient(cred.Credential)
+
+	dispatcher := commands.NewDispatcher(commands.HTTPAPI{Client: client}, 15*time.Second, 4)
+	go dispatcher.Run(ctx)
+	if cred.Reverb != nil {
+		pusher := &transport.Pusher{
+			URL:     transport.ReverbURL(cred.Reverb.Scheme, cred.Reverb.Host, cred.Reverb.Port, cred.Reverb.Key),
+			Channel: "private-host." + cred.HostID,
+			Authorize: func(ctx context.Context, socketID, channel string) (string, error) {
+				var resp struct {
+					Auth string `json:"auth"`
+				}
+				err := client.Do(ctx, "POST", "/agent/v1/broadcasting/auth", map[string]string{"socket_id": socketID, "channel_name": channel}, &resp)
+				return resp.Auth, err
+			},
+			OnEvent: func(event, _ string) {
+				if event == "command.available" {
+					dispatcher.Trigger()
+				}
+			},
+			OnConnect: dispatcher.Trigger,
+		}
+		go pusher.Run(ctx)
+	}
 
 	return telemetry.Loop(ctx, cfg.HeartbeatInterval, collector.Collect,
 		func(ctx context.Context, f telemetry.Facts) error {
