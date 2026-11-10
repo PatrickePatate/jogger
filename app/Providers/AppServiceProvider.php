@@ -14,6 +14,8 @@ use App\Domain\Github\OAuth\GithubIdentityProvider;
 use App\Domain\Github\OAuth\GithubOAuth;
 use App\Domain\Github\Webhooks\HandlePing;
 use App\Domain\Github\Webhooks\WebhookHandlers;
+use App\Domain\Hosts\Contracts\HostDriver;
+use App\Domain\Hosts\Drivers\AgentHostDriver;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -28,6 +30,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->bind(HostDriver::class, AgentHostDriver::class);
         // Tests replace this with FakeGithubGateway::install().
         $this->app->bind(GithubGateway::class, HttpGithubGateway::class);
 

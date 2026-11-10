@@ -18,6 +18,7 @@ Broadcast::channel('repository.{repositoryId}', fn (User $user, string $reposito
     ->visibleTo($user)->whereKey($repositoryId)->exists());
 Broadcast::channel('job.{jobId}', fn (User $user, string $jobId) => Str::isUuid($jobId) && WorkflowJob::query()
     ->visibleTo($user)->whereKey($jobId)->exists());
+// host.{id} is for agents only (they authenticate with their host credential at /agent/v1/broadcasting/auth), never for browsers.
 Broadcast::channel('host.{hostId}', fn ($user, $hostId) => false);
 Broadcast::channel('pool.{poolId}', fn ($user, $poolId) => false);
 // Hosts are shared infrastructure: any signed-in user sees them, so any signed-in user may follow their status.
