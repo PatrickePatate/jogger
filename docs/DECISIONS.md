@@ -433,3 +433,9 @@ Running log of choices made while building, where reality differed from the plan
 - Non-administrators see the sum of the repositories (and pools) they may see; across several repositories their p50 is a job-weighted average and their p95 the worst bucket, which are approximations.
 - Ranges: 1 h reads minute samples, 24 h / 7 d / 30 d read hour samples (at most 720 rows per series through the primary key). The "< 1 s on 30 days of data" criterion was not measured.
 - CSV export covers the repositories table of the selected range.
+
+## Task 51: Prometheus endpoint
+
+- Hand-written exporter (`PrometheusExporter`), no package. `GET /metrics` needs `Authorization: Bearer $JOGGER_METRICS_TOKEN` (compared with `hash_equals`); without a configured token the route answers 404; it is throttled to 60 requests a minute.
+- Series: `jogger_runners{state}`, `jogger_jobs{status}`, `jogger_queue_depth`, `jogger_queue_wait_seconds` (histogram over jobs started in the last hour), `jogger_host_up`, host CPU / memory / disk gauges, `jogger_github_rate_limit_remaining{installation}`.
+- The format is checked by a strict parser in the test, not by `promtool` (not installed here, and CI has no step for it).

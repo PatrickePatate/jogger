@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
 final class EnsureSetupComplete
 {
     /** Paths that must keep working on a fresh install. */
-    private const EXCEPT = ['setup', 'setup/*', 'livewire*', 'broadcasting/*', 'webhooks/*', '_ui', '_ui/*'];
+    private const EXCEPT = ['setup', 'setup/*', 'livewire*', 'broadcasting/*', 'webhooks/*', 'metrics', '_ui', '_ui/*'];
 
     public function handle(Request $request, Closure $next): Response
     {

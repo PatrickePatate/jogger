@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\GithubLoginController;
 use App\Http\Controllers\Auth\InvitationController;
 use App\Http\Controllers\GithubManifestController;
 use App\Http\Controllers\JobLogController;
+use App\Http\Controllers\MetricsController;
 use App\Http\Middleware\LocalOnly;
 use App\Http\Middleware\RedirectIfSetupComplete;
 use App\Livewire\Admin\Teams;
@@ -26,6 +27,7 @@ use App\Livewire\Settings\Tokens;
 use App\Livewire\Setup\FirstRun;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/metrics', MetricsController::class)->middleware('throttle:60,1')->name('metrics');
 Route::get('/setup', FirstRun::class)->middleware(RedirectIfSetupComplete::class)->name('setup');
 
 Route::prefix('auth/github')->group(function () {
