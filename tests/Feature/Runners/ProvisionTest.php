@@ -16,7 +16,6 @@ use App\Domain\Runners\Enums\RunnerState;
 use App\Domain\Runners\Models\Runner;
 use App\Jobs\ProvisionRunnerJob;
 use App\Support\Exceptions\GithubApiError;
-use App\Support\Exceptions\GithubRateLimited;
 use App\Support\Exceptions\HostUnavailable;
 use Illuminate\Broadcasting\BroadcastEvent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -142,16 +141,9 @@ class ProvisionTest extends TestCase
         $this->assertSame(1, Runner::query()->live()->count());
     }
 
-    public function test_the_job_waits_on_rate_limits_and_full_pools_and_stops_for_finished_jobs(): void
+    public function test_the_job_waits_on_full_pools_and_stops_for_finished_jobs(): void
     {
         $job = WorkflowJob::factory()->create(['pool_id' => $this->pool->id]);
-
-        $this->github->failNextWith(new GithubRateLimited('slow down', 90));
-        $limited = (new ProvisionRunnerJob($this->pool->id, $job->id))->withFakeQueueInteractions();
-        $limited->handle(app(ProvisionRunner::class), app(PoolDemand::class));
-        $limited->assertReleased(90);
-        $this->assertStringStartsWith('GITHUB_RATE_LIMITED:', (string) $job->refresh()->unmatched_reason);
-        $this->assertSame(0, Runner::query()->live()->count());
 
         Runner::factory()->count(2)->create(['pool_id' => $this->pool->id, 'state' => RunnerState::Busy]);
         $full = (new ProvisionRunnerJob($this->pool->id, $job->id))->withFakeQueueInteractions();
@@ -163,6 +155,6 @@ class ProvisionTest extends TestCase
         $skip = (new ProvisionRunnerJob($this->pool->id, $done->id))->withFakeQueueInteractions();
         $skip->handle(app(ProvisionRunner::class), app(PoolDemand::class));
         $skip->assertNotReleased();
-        $this->github->assertCalled('generateJitConfig', 1);
+        $this->github->assertNotCalled('generateJitConfig');
     }
 }

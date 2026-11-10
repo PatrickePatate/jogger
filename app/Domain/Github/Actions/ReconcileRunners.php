@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Github\Actions;
 
 use App\Domain\Github\Contracts\GithubGateway;
+use App\Domain\Github\Support\GithubLane;
 use App\Domain\Hosts\Contracts\HostDriver;
 use App\Domain\Hosts\Enums\HostStatus;
 use App\Domain\Pools\Models\RunnerPool;
@@ -26,6 +27,7 @@ final class ReconcileRunners
         private readonly GithubGateway $github,
         private readonly TransitionRunner $transition,
         private readonly HostDriver $driver,
+        private readonly GithubLane $lane,
     ) {}
 
     /**
@@ -45,7 +47,19 @@ final class ReconcileRunners
 
         foreach ($scopes as $pools) {
             $scope = $pools->first()->githubScope();
-            $listed = collect($this->github->listRunners($scope))->filter(fn ($r) => str_starts_with($r->name, Runner::NAME_PREFIX));
+            $installationId = $scope->installation->id;
+            if ($this->lane->pausedFor($installationId) > 0) {
+                continue;
+            }
+
+            try {
+                $all = $this->github->listRunners($scope);
+            } catch (GithubRateLimited $e) {
+                $this->lane->pause($installationId, $e->retryAfterSeconds);
+
+                continue;
+            }
+            $listed = collect($all)->filter(fn ($r) => str_starts_with($r->name, Runner::NAME_PREFIX));
             $ours = Runner::query()->whereIn('pool_id', $pools->modelKeys())->whereIn('name', $listed->pluck('name'))->get()->keyBy('name');
 
             foreach ($listed as $remote) {

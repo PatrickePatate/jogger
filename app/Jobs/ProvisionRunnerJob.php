@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Domain\Github\Support\RateLimitedByGithub;
 use App\Domain\Jobs\Enums\JobStatus;
 use App\Domain\Jobs\Models\WorkflowJob;
 use App\Domain\Pools\Data\PoolMatch;
 use App\Domain\Pools\Models\RunnerPool;
 use App\Domain\Pools\PoolDemand;
 use App\Domain\Runners\Actions\ProvisionRunner;
-use App\Support\Exceptions\GithubRateLimited;
 use App\Support\Exceptions\HostUnavailable;
 use DateTimeInterface;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -43,6 +43,29 @@ final class ProvisionRunnerJob implements ShouldQueue
         return [5, 30, 120];
     }
 
+    /**
+     * @return list<object>
+     */
+    public function middleware(): array
+    {
+        return [app(RateLimitedByGithub::class)];
+    }
+
+    /** The rate-limit lane this job belongs to. */
+    public function githubInstallationId(): ?string
+    {
+        return RunnerPool::query()->whereKey($this->poolId)->value('installation_id');
+    }
+
+    /** Called by the lane middleware when the job has to wait for GitHub. */
+    public function onGithubRateLimit(int $seconds): void
+    {
+        if ($this->jobId !== null) {
+            WorkflowJob::query()->whereKey($this->jobId)->where('status', JobStatus::Queued->value)
+                ->update(['unmatched_reason' => PoolMatch::describe('GITHUB_RATE_LIMITED', 'waiting for the GitHub API rate limit to reset')]);
+        }
+    }
+
     public function handle(ProvisionRunner $provision, PoolDemand $demand): void
     {
         $pool = RunnerPool::query()->with('installation')->find($this->poolId);
@@ -64,10 +87,6 @@ final class ProvisionRunnerJob implements ShouldQueue
             $runner = $provision($pool);
         } catch (HostUnavailable) {
             $this->waiting($job, PoolMatch::describe(PoolMatch::NO_CAPACITY, 'no host has room for a runner of this pool'), 30);
-
-            return;
-        } catch (GithubRateLimited $e) {
-            $this->waiting($job, PoolMatch::describe('GITHUB_RATE_LIMITED', 'waiting for the GitHub API rate limit to reset'), max(5, $e->retryAfterSeconds ?? 60));
 
             return;
         }

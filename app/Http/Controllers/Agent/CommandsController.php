@@ -7,6 +7,10 @@ namespace App\Http\Controllers\Agent;
 use App\Domain\Hosts\Enums\CommandStatus;
 use App\Domain\Hosts\Models\Host;
 use App\Domain\Hosts\Models\HostCommand;
+use App\Domain\Runners\Actions\TerminateRunner;
+use App\Domain\Runners\Actions\TransitionRunner;
+use App\Domain\Runners\Enums\RunnerState;
+use App\Domain\Runners\Models\Runner;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -86,6 +90,15 @@ final class CommandsController extends Controller
                 'acked_at' => now(),
                 'updated_at' => now(),
             ]);
+
+        // A runner whose container could not be started must not hold its slot until the provision timeout.
+        if (! $data['ok'] && $record->type === 'runner.start' && Str::isUuid((string) ($payload['runner_id'] ?? ''))) {
+            $runner = Runner::query()->whereKey($payload['runner_id'])->where('host_id', $host->id)->first();
+            if ($runner !== null && $runner->state === RunnerState::Provisioning) {
+                app(TransitionRunner::class)($runner, RunnerState::Failed, ['exit_reason' => 'start_failed']);
+                app(TerminateRunner::class)->deregister($runner);
+            }
+        }
 
         return response()->json(['id' => $record->id, 'status' => $record->refresh()->status->value]);
     }

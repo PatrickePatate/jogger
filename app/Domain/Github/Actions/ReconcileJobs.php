@@ -7,6 +7,7 @@ namespace App\Domain\Github\Actions;
 use App\Domain\Github\Contracts\GithubGateway;
 use App\Domain\Github\Enums\ScopeType;
 use App\Domain\Github\Models\Repository;
+use App\Domain\Github\Support\GithubLane;
 use App\Domain\Jobs\Actions\ScheduleJob;
 use App\Domain\Jobs\Actions\UpsertJobFromWebhook;
 use App\Domain\Jobs\Enums\JobStatus;
@@ -30,6 +31,7 @@ final class ReconcileJobs
         private readonly GithubGateway $github,
         private readonly UpsertJobFromWebhook $upsert,
         private readonly ScheduleJob $schedule,
+        private readonly GithubLane $lane,
     ) {}
 
     /**
@@ -42,11 +44,19 @@ final class ReconcileJobs
         $imported = 0;
 
         foreach ($this->repositories() as $repository) {
-            if (! $repository->installation->isActive()) {
+            if (! $repository->installation->isActive() || $this->lane->pausedFor($repository->installation_id) > 0) {
                 continue;
             }
 
-            foreach ($this->github->listQueuedJobs($repository->installation, $repository) as $data) {
+            try {
+                $queued = $this->github->listQueuedJobs($repository->installation, $repository);
+            } catch (GithubRateLimited $e) {
+                $this->lane->pause($repository->installation_id, $e->retryAfterSeconds);
+
+                continue;
+            }
+
+            foreach ($queued as $data) {
                 $known = WorkflowJob::query()->where('github_job_id', $data->jobId)->exists();
                 $job = ($this->upsert)($data);
                 if ($job === null) {

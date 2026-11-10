@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Pools\Actions;
 
+use App\Domain\Github\Support\GithubLane;
 use App\Domain\Pools\Models\RunnerPool;
 use App\Domain\Pools\PoolDemand;
 use App\Domain\Runners\Actions\ProvisionRunner;
@@ -21,12 +22,16 @@ final class ReconcilePoolCapacity
     /** Per pool and per pass, so one pool cannot starve the others or burn the GitHub rate limit. */
     public const MAX_PER_PASS = 10;
 
-    public function __construct(private readonly PoolDemand $demand, private readonly ProvisionRunner $provision) {}
+    public function __construct(
+        private readonly PoolDemand $demand,
+        private readonly ProvisionRunner $provision,
+        private readonly GithubLane $lane,
+    ) {}
 
     /** @return int runners started */
     public function __invoke(RunnerPool $pool): int
     {
-        if ($pool->isPaused()) {
+        if ($pool->isPaused() || $this->lane->pausedFor($pool->installation_id) > 0) {
             return 0;
         }
 
@@ -38,8 +43,11 @@ final class ReconcilePoolCapacity
                 if (($this->provision)($pool) === null) {
                     break; // at max_runners
                 }
-            } catch (HostUnavailable|GithubRateLimited) {
-                break; // nothing to do until capacity or the rate limit comes back
+            } catch (GithubRateLimited $e) {
+                $this->lane->pause($pool->installation_id, $e->retryAfterSeconds);
+                break;
+            } catch (HostUnavailable) {
+                break; // nothing to do until a host has room
             } catch (GithubApiError $e) {
                 Log::warning('pool reconcile: provisioning failed', ['pool' => $pool->id, 'error' => $e->getMessage()]);
                 break;
