@@ -385,3 +385,9 @@ Running log of choices made while building, where reality differed from the plan
 - **Log viewer** (`resources/js/log-terminal.js`, xterm.js + fit + search addons): loads the last 512 KB of stored log, then follows `log.chunk`. Merge rule: stored text ends at `last_seq`; only chunks with a higher `(seq, part)` are written. Live chunks received while a fetch is in flight are held back. After a websocket reconnect it catches up by byte offset. 50 000-line scrollback; "Load earlier lines" rebuilds the terminal from further back (a terminal cannot prepend).
 - **Not verified in a browser.** The Livewire side is tested; the JavaScript builds but has not been exercised against a real stream, so ANSI rendering, the merge on reload and the 1-second latency are unproven until the browser tests of Task 58 or a manual run.
 - Bundle grew to about 460 KB (120 KB gzipped) because xterm is in the main entry; splitting it into a lazily loaded chunk is an easy follow-up.
+
+## Task 44 — Runners page and runner actions
+
+- Runners page: present runners plus those that ended in the last 24 h (max 200), state filter in the URL, live for administrators (`private-runners`) and polled every 5 s for others. Clicking a name opens a lifecycle stepper under the row (in place of a drawer).
+- **Terminate** needs operator on the runner's pool. Idle/provisioning: one confirm. **Busy: a second, explicit "Terminate anyway"** step server-side, not just a browser confirm. Reason `terminated_by_user`, audit action `runner.terminated` with `forced`.
+- API: `GET /api/v1/runners` (live by default; `state`, `pool` filters), `GET /api/v1/hosts` (any token; no revoked hosts), `DELETE /api/v1/runners/{id}` (operator token + operator on the pool; 409 for a busy runner without `force=true`).

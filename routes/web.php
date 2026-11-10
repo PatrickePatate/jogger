@@ -17,6 +17,7 @@ use App\Livewire\Jobs\Index as JobsIndex;
 use App\Livewire\Jobs\Show as JobShow;
 use App\Livewire\Pools\Form as PoolForm;
 use App\Livewire\Pools\Index as PoolsIndex;
+use App\Livewire\Runners\Index as RunnersIndex;
 use App\Livewire\Settings\Security;
 use App\Livewire\Settings\Tokens;
 use App\Livewire\Setup\FirstRun;
@@ -45,6 +46,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/jobs/{job}', JobShow::class)->name('jobs.show');
     Route::get('/jobs/{job}/log', [JobLogController::class, 'scrollback'])->name('jobs.log');
     Route::get('/jobs/{job}/log/download', [JobLogController::class, 'download'])->name('jobs.log.download');
+    Route::get('/runners', RunnersIndex::class)->name('runners.index');
     Route::get('/pools', PoolsIndex::class)->name('pools.index');
     Route::get('/pools/create', PoolForm::class)->name('pools.create');
     Route::get('/pools/{pool}/edit', PoolForm::class)->whereUuid('pool')->name('pools.edit');
