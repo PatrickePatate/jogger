@@ -43,6 +43,11 @@ func IsNotFound(err error) bool {
 }
 
 func (c *Client) request(ctx context.Context, method, path string, query url.Values, body any) (*http.Response, error) {
+	return c.requestWith(ctx, method, path, query, body, nil)
+}
+
+// requestWith is request plus extra headers (registry credentials travel in one).
+func (c *Client) requestWith(ctx context.Context, method, path string, query url.Values, body any, headers map[string]string) (*http.Response, error) {
 	var reader io.Reader
 	if body != nil {
 		payload, err := json.Marshal(body)
@@ -61,6 +66,9 @@ func (c *Client) request(ctx context.Context, method, path string, query url.Val
 	}
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
+	}
+	for name, value := range headers {
+		req.Header.Set(name, value)
 	}
 	resp, err := c.http.Do(req)
 	if err != nil {

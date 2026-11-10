@@ -65,7 +65,7 @@ func (r *Runner) startDind(ctx context.Context, s Spec, net string) error {
 	if image == "" {
 		image = DefaultDindImage
 	}
-	if err := r.Docker.EnsureImage(ctx, image); err != nil {
+	if err := r.Docker.EnsureImage(ctx, image, nil); err != nil {
 		return err
 	}
 	labels := sidecarLabels(s, r.HostID)

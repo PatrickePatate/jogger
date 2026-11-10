@@ -409,3 +409,12 @@ Running log of choices made while building, where reality differed from the plan
 - Pools page: a callout lists queued jobs whose reason is `NO_MATCHING_POOL`, grouped by label set (label order ignored), up to eight groups, each with "Create pool for these labels", which opens the form with `?labels=` prefilled.
 - Hosts page: each card shows the runners that have a container there (busy / idle / starting / stopping) and expands in place to list them; the page now also re-renders on `runner.state-changed`.
 - Pool meters already followed `runner.state-changed`; a test now covers it.
+
+## Task 48: Secrets and environment
+
+- Table `secrets`: scope (`global`, `installation`, `pool`), kind (`env` or `registry`), name, encrypted `value`. `ResolveSecretsForPool` implements both `ResolvesSecrets` (runner env, registry credentials) and the log masker's `SecretSource`; precedence pool > installation > global per name.
+- **Registry credentials** are a secret of kind `registry` whose name is the registry host (`ghcr.io`; `docker.io` for images without a host). They travel as `registry_auth` in `runner.start` and `image.pull`; the agent sends them to Docker in `X-Registry-Auth`. This closes the anonymous-pull gap of Task 39. Not tried against a real private registry.
+- **Rotation**: saving an existing scope + name replaces the value and keeps the old one in `previous_value`. Runners already started keep the value they were given (it is in their container env), so both values are masked in logs until the next rotation.
+- `env` and `registry_auth` are removed from the stored `host_commands` payload when the command is acknowledged, like `jit_config`. **While a command is pending they are in that table unencrypted**; encrypting the outbox payload is left for the hardening task.
+- Access: global secrets need an administrator; installation secrets an operator of the installation; pool secrets an operator of the pool. Viewers see names only. Nobody can read a value back; the Livewire component drops it from its state as soon as it is saved. Env names starting with `GITHUB_`, `RUNNER_`, `ACTIONS_` and `JIT_CONFIG` are refused.
+- Docker Desktop had stopped during this task and was started again to run the tests.

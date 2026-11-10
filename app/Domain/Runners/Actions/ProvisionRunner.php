@@ -63,6 +63,7 @@ final class ProvisionRunner
                 'env' => (object) $this->secrets->envFor($pool),
                 'labels' => $pool->labels,
                 'docker_mode' => $pool->docker_mode->value,
+                ...(($auth = $this->secrets->registryAuthFor($pool)) !== null ? ['registry_auth' => $auth] : []),
             ]);
         } catch (Throwable $e) {
             ($this->transition)($runner, RunnerState::Failed, ['exit_reason' => $runner->github_runner_id === null ? 'jit_failed' : 'dispatch_failed']);

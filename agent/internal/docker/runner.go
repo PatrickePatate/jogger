@@ -29,6 +29,7 @@ type Spec struct {
 	DockerMode string            `json:"docker_mode"`
 	Command    []string          `json:"command,omitempty"` // overrides the image's entrypoint arguments
 	DindImage  string            `json:"dind_image,omitempty"`
+	Registry   *RegistryAuth     `json:"registry_auth,omitempty"`
 }
 
 // DefaultDindImage is the rootless Docker-in-Docker sidecar used when docker_mode is "dind".
@@ -87,7 +88,7 @@ func (r *Runner) Start(ctx context.Context, s Spec) (Started, error) {
 		return Started{ContainerID: id, Existing: true}, nil
 	}
 
-	if err := r.Docker.EnsureImage(ctx, s.Image); err != nil {
+	if err := r.Docker.EnsureImage(ctx, s.Image, s.Registry); err != nil {
 		return Started{}, err
 	}
 

@@ -19,6 +19,7 @@ use App\Livewire\Overview\Dashboard;
 use App\Livewire\Pools\Form as PoolForm;
 use App\Livewire\Pools\Index as PoolsIndex;
 use App\Livewire\Runners\Index as RunnersIndex;
+use App\Livewire\Secrets\Index as SecretsIndex;
 use App\Livewire\Settings\Security;
 use App\Livewire\Settings\Tokens;
 use App\Livewire\Setup\FirstRun;
@@ -51,6 +52,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/pools', PoolsIndex::class)->name('pools.index');
     Route::get('/pools/create', PoolForm::class)->name('pools.create');
     Route::get('/pools/{pool}/edit', PoolForm::class)->whereUuid('pool')->name('pools.edit');
+    Route::get('/secrets', SecretsIndex::class)->name('secrets.index');
     Route::get('/settings/security', Security::class)->name('settings.security');
     Route::get('/settings/tokens', Tokens::class)->name('settings.tokens');
 

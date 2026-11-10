@@ -73,9 +73,9 @@ final class CommandsController extends Controller
 
         $final = $data['ok'] ? CommandStatus::Acked : CommandStatus::Failed;
 
-        // The single-use runner credential has no business staying in the table once the command is settled.
+        // Credentials and secrets have no business staying in the table once the command is settled.
         $payload = $record->payload;
-        unset($payload['jit_config']);
+        unset($payload['jit_config'], $payload['env'], $payload['registry_auth']);
 
         $settled = HostCommand::query()
             ->whereKey($record->id)

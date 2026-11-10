@@ -16,7 +16,6 @@ use App\Domain\Github\Webhooks\HandlePing;
 use App\Domain\Github\Webhooks\WebhookHandlers;
 use App\Domain\Hosts\Contracts\HostDriver;
 use App\Domain\Hosts\Drivers\AgentHostDriver;
-use App\Domain\Jobs\Logs\NoSecrets;
 use App\Domain\Jobs\Logs\SecretSource;
 use App\Domain\Pools\Models\RunnerPool;
 use App\Domain\Pools\Policies\RunnerPoolPolicy;
@@ -24,8 +23,8 @@ use App\Domain\Runners\Actions\ApplyContainerEvent;
 use App\Domain\Runners\Contracts\RunnerCensus;
 use App\Domain\Runners\Contracts\RunnerEvents;
 use App\Domain\Runners\Support\RunnerCount;
+use App\Domain\Secrets\Actions\ResolveSecretsForPool;
 use App\Domain\Secrets\Contracts\ResolvesSecrets;
-use App\Domain\Secrets\NoSecrets as NoPoolSecrets;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -46,9 +45,8 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->bind(RunnerEvents::class, ApplyContainerEvent::class);
         $this->app->bind(RunnerCensus::class, RunnerCount::class);
-        // Placeholders until secrets exist (Phase 8).
-        $this->app->bind(ResolvesSecrets::class, NoPoolSecrets::class);
-        $this->app->bind(SecretSource::class, NoSecrets::class);
+        $this->app->bind(ResolvesSecrets::class, ResolveSecretsForPool::class);
+        $this->app->bind(SecretSource::class, ResolveSecretsForPool::class);
 
         $this->app->singleton(RateLimitTracker::class);
         $this->app->bind(GithubIdentityProvider::class, GithubOAuth::class);
