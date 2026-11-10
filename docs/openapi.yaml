@@ -1,0 +1,446 @@
+openapi: 3.1.0
+info:
+  title: Jogger API
+  version: "1.0"
+  description: >
+    Read jobs, runners, hosts and pools of a Jogger instance, and manage pools and runners.
+    A token sees what its owner sees. See API.md for a guided introduction.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: https://ci.example.com/api/v1
+    description: Replace with your instance's address
+security:
+  - bearerAuth: []
+tags:
+  - name: Account
+  - name: Jobs
+  - name: Runners
+  - name: Hosts
+  - name: Pools
+paths:
+  /me:
+    get:
+      operationId: getMe
+      tags: [Account]
+      summary: The token's owner and access level
+      responses:
+        "200":
+          description: The current user and token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id: { type: string, format: uuid }
+                      name: { type: string }
+                      email: { type: string, format: email }
+                      is_admin: { type: boolean }
+                      token:
+                        type: object
+                        properties:
+                          id: { type: string, format: uuid }
+                          name: { type: string }
+                          role: { $ref: "#/components/schemas/Role" }
+        "401": { $ref: "#/components/responses/Error" }
+  /jobs:
+    get:
+      operationId: listJobs
+      tags: [Jobs]
+      summary: Jobs, newest first
+      parameters:
+        - name: repository
+          in: query
+          description: Full repository name, `owner/name`
+          schema: { type: string, maxLength: 200 }
+        - name: status
+          in: query
+          schema: { $ref: "#/components/schemas/JobStatus" }
+        - name: pool
+          in: query
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/PerPage"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: A page of jobs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Job" }
+                  links: { $ref: "#/components/schemas/CursorLinks" }
+                  meta: { type: object }
+        "401": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /jobs/{job}:
+    get:
+      operationId: getJob
+      tags: [Jobs]
+      summary: One job
+      parameters:
+        - $ref: "#/components/parameters/JobId"
+      responses:
+        "200":
+          description: The job
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Job" }
+        "401": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /jobs/{job}/logs:
+    get:
+      operationId: getJobLogs
+      tags: [Jobs]
+      summary: The job's log
+      parameters:
+        - $ref: "#/components/parameters/JobId"
+        - name: format
+          in: query
+          description: "`gz` returns the stored gzip archive once the log is finished"
+          schema: { type: string, enum: [gz] }
+      responses:
+        "200":
+          description: The log
+          content:
+            text/plain:
+              schema: { type: string }
+            application/gzip:
+              schema: { type: string, format: binary }
+        "401": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /runners:
+    get:
+      operationId: listRunners
+      tags: [Runners]
+      summary: Runners; only live ones unless `state` is given
+      parameters:
+        - name: state
+          in: query
+          schema: { $ref: "#/components/schemas/RunnerState" }
+        - name: pool
+          in: query
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/PerPage"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: A page of runners
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Runner" }
+                  links: { $ref: "#/components/schemas/CursorLinks" }
+                  meta: { type: object }
+        "401": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /runners/{runner}:
+    delete:
+      operationId: terminateRunner
+      tags: [Runners]
+      summary: Terminate a runner
+      description: Needs an Operator token whose owner is an operator of the runner's pool.
+      parameters:
+        - name: runner
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: force
+          in: query
+          description: Required to terminate a busy runner; its job is killed
+          schema: { type: boolean, default: false }
+      responses:
+        "200":
+          description: The runner, now terminating
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Runner" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /hosts:
+    get:
+      operationId: listHosts
+      tags: [Hosts]
+      summary: Hosts, except revoked ones
+      responses:
+        "200":
+          description: Hosts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Host" }
+        "401": { $ref: "#/components/responses/Error" }
+  /pools:
+    get:
+      operationId: listPools
+      tags: [Pools]
+      summary: Pools, by name
+      parameters:
+        - $ref: "#/components/parameters/PerPage"
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "200":
+          description: A page of pools
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Pool" }
+                  links: { type: object }
+                  meta: { type: object }
+        "401": { $ref: "#/components/responses/Error" }
+    post:
+      operationId: createPool
+      tags: [Pools]
+      summary: Create a pool
+      description: Needs an Operator token whose owner is an operator of the installation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "#/components/schemas/PoolInput"
+                - type: object
+                  required: [installation_id, name, scope, scope_target, labels, image]
+                  properties:
+                    installation_id: { type: string, format: uuid }
+                    scope: { type: string, enum: [repository, organization] }
+                    scope_target:
+                      type: string
+                      description: "`owner/name` for a repository, the login for an organization"
+                    confirm_public:
+                      type: boolean
+                      description: Must be true when the pool serves a public repository
+      responses:
+        "201":
+          description: The new pool
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Pool" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /pools/{pool}:
+    parameters:
+      - name: pool
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getPool
+      tags: [Pools]
+      summary: One pool
+      responses:
+        "200":
+          description: The pool
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Pool" }
+        "401": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+    patch:
+      operationId: updatePool
+      tags: [Pools]
+      summary: Change a pool, or pause / resume it with `status`
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "#/components/schemas/PoolInput"
+                - type: object
+                  properties:
+                    status: { type: string, enum: [active, paused] }
+      responses:
+        "200":
+          description: The updated pool
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Pool" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: A personal access token created under API tokens in Jogger
+  parameters:
+    JobId:
+      name: job
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    PerPage:
+      name: per_page
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+    Cursor:
+      name: cursor
+      in: query
+      description: Opaque position; take it from `links.next`
+      schema: { type: string }
+  responses:
+    Error:
+      description: An error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+  schemas:
+    Role:
+      type: string
+      enum: [viewer, operator, admin]
+    JobStatus:
+      type: string
+      enum: [waiting, queued, in_progress, completed]
+    RunnerState:
+      type: string
+      enum: [provisioning, idle, busy, terminating, gone, failed]
+    CursorLinks:
+      type: object
+      properties:
+        prev: { type: [string, "null"] }
+        next: { type: [string, "null"] }
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string, examples: [VALIDATION_ERROR] }
+            message: { type: string }
+            details: { type: object }
+            request_id: { type: string }
+    Job:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        github_job_id: { type: integer }
+        github_run_id: { type: integer }
+        repository: { type: [string, "null"], description: "`owner/name`" }
+        workflow_name: { type: [string, "null"] }
+        job_name: { type: string }
+        labels: { type: array, items: { type: string } }
+        status: { $ref: "#/components/schemas/JobStatus" }
+        conclusion:
+          type: [string, "null"]
+          enum: [success, failure, cancelled, skipped, timed_out, action_required, neutral, null]
+        unmatched_reason: { type: [string, "null"], description: Why the job has no runner yet }
+        pool_id: { type: [string, "null"], format: uuid }
+        runner_id: { type: [string, "null"], format: uuid }
+        head_branch: { type: [string, "null"] }
+        head_sha: { type: [string, "null"] }
+        actor: { type: [string, "null"] }
+        html_url: { type: [string, "null"] }
+        queued_at: { type: [string, "null"], format: date-time }
+        started_at: { type: [string, "null"], format: date-time }
+        completed_at: { type: [string, "null"], format: date-time }
+        created_at: { type: [string, "null"], format: date-time }
+    Runner:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        state: { $ref: "#/components/schemas/RunnerState" }
+        pool_id: { type: string, format: uuid }
+        host_id: { type: [string, "null"], format: uuid }
+        github_runner_id: { type: [integer, "null"] }
+        exit_reason: { type: [string, "null"] }
+        exit_code: { type: [integer, "null"] }
+        created_at: { type: [string, "null"], format: date-time }
+        started_at: { type: [string, "null"], format: date-time }
+        finished_at: { type: [string, "null"], format: date-time }
+    Host:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        status:
+          type: string
+          enum: [pending, online, offline, cordoned, draining]
+        labels: { type: array, items: { type: string } }
+        arch: { type: [string, "null"] }
+        os: { type: [string, "null"] }
+        docker_version: { type: [string, "null"] }
+        agent_version: { type: [string, "null"] }
+        cpu_total: { type: [number, "null"] }
+        cpu_used: { type: [number, "null"] }
+        memory_total_mb: { type: [integer, "null"] }
+        memory_used_mb: { type: [integer, "null"] }
+        disk_free_gb: { type: [integer, "null"] }
+        last_seen_at: { type: [string, "null"], format: date-time }
+    PoolInput:
+      type: object
+      properties:
+        name: { type: string, maxLength: 100 }
+        runner_group_id: { type: [integer, "null"], minimum: 1 }
+        labels:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items: { type: string }
+        image: { type: string, maxLength: 300 }
+        cpu_limit: { type: [number, "null"], minimum: 0.1, maximum: 256 }
+        memory_limit_mb: { type: [integer, "null"], minimum: 128 }
+        min_idle: { type: integer, minimum: 0, maximum: 100 }
+        max_runners: { type: integer, minimum: 1, maximum: 500 }
+        idle_ttl_seconds: { type: integer, minimum: 60, maximum: 86400 }
+        docker_mode: { type: string, enum: [none, dind] }
+        persist_tool_cache: { type: boolean }
+        allowed_host_labels:
+          type: array
+          maxItems: 20
+          items: { type: string }
+    Pool:
+      allOf:
+        - $ref: "#/components/schemas/PoolInput"
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            installation_id: { type: string, format: uuid }
+            scope: { type: string, enum: [repository, organization] }
+            scope_target: { type: string }
+            status: { type: string, enum: [active, paused] }
+            created_at: { type: [string, "null"], format: date-time }
+            updated_at: { type: [string, "null"], format: date-time }

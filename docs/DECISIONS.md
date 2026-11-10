@@ -477,3 +477,11 @@ Running log of choices made while building, where reality differed from the plan
 - The browser reads where Reverb is from a `<meta name="jogger-reverb">` tag (`REVERB_PUBLIC_*`, defaulting to the page's own host and port), so the built assets are not tied to a domain. Websockets through this path were not exercised in a browser.
 - `GET /health` (administrators): database, Redis, Reverb, queue lag, GitHub credentials, hosts; 503 and `degraded` when one fails. The "Redis stopped" case is tested with a failing Redis connection, not by stopping Redis.
 - Added `.dockerignore` (keeps `.env` out of images), `.env.production.example`, `docs/INSTALL.md`.
+
+## Task 61: Documentation (done before Tasks 58–60, at the owner's request)
+
+- Written: final `README.md`, `docs/{CONFIGURATION,GITHUB-APP,AGENT,POOLS,TROUBLESHOOTING,API}.md`, `docs/openapi.yaml` (OpenAPI 3.1 for `/api/v1`), `CONTRIBUTING.md`, `LICENSE` (MIT, "Jogger contributors"; composer.json already declared MIT). `docs/INSTALL.md` came with Task 57.
+- `tests/Feature/DocumentationTest.php` keeps the docs honest: the OpenAPI paths must equal the implemented `/api/v1` routes, every `$ref` must resolve, every variable of `.env.production.example` must appear in CONFIGURATION.md, and README links must exist. `symfony/yaml` was added as a dev dependency for it.
+- **Not done**: no screenshots (`docs/img/` does not exist); `openapi.yaml` was not run through an external linter (downloading one was not permitted in this session); nobody has walked through INSTALL + GITHUB-APP to a first green job, which cannot happen before the real run of Task 40. The troubleshooting advice is derived from the code's failure paths, not from incidents.
+- Known inconsistency left as is: the agent image is `ghcr.io/jogger/jogger-agent` in the "Add host" command and in the docs, but `ghcr.io/patrickepatate/jogger-agent` in the compose file, and no image is published under either name yet. Settle the registry namespace in the release task (60).
+- Tasks 58, 59, 60 and 62 are still to do; `docs/TASKS.md` now starts with a status table.
