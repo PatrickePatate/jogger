@@ -20,10 +20,10 @@ use App\Domain\Jobs\Logs\NoSecrets;
 use App\Domain\Jobs\Logs\SecretSource;
 use App\Domain\Pools\Models\RunnerPool;
 use App\Domain\Pools\Policies\RunnerPoolPolicy;
+use App\Domain\Runners\Actions\ApplyContainerEvent;
 use App\Domain\Runners\Contracts\RunnerCensus;
 use App\Domain\Runners\Contracts\RunnerEvents;
-use App\Domain\Runners\Support\LogRunnerEvents;
-use App\Domain\Runners\Support\NoRunners;
+use App\Domain\Runners\Support\RunnerCount;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -42,9 +42,9 @@ class AppServiceProvider extends ServiceProvider
         // Tests replace this with FakeGithubGateway::install().
         $this->app->bind(GithubGateway::class, HttpGithubGateway::class);
 
-        // Placeholders until the runner state machine (Task 31) and secrets (Phase 8) exist.
-        $this->app->bind(RunnerEvents::class, LogRunnerEvents::class);
-        $this->app->bind(RunnerCensus::class, NoRunners::class);
+        $this->app->bind(RunnerEvents::class, ApplyContainerEvent::class);
+        $this->app->bind(RunnerCensus::class, RunnerCount::class);
+        // Placeholder until secrets exist (Phase 8).
         $this->app->bind(SecretSource::class, NoSecrets::class);
 
         $this->app->singleton(RateLimitTracker::class);

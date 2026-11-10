@@ -7,6 +7,7 @@ use App\Http\Controllers\Agent\EventsController;
 use App\Http\Controllers\Agent\HeartbeatController;
 use App\Http\Controllers\Agent\LogsController;
 use App\Http\Controllers\Agent\MeController;
+use App\Http\Controllers\Agent\RunnersController;
 use App\Http\Middleware\AuthenticateAgent;
 use Illuminate\Support\Facades\Route;
 
@@ -23,6 +24,7 @@ Route::prefix('agent/v1')->group(function () {
         Route::post('/commands/{command}/ack', [CommandsController::class, 'ack'])->name('agent.commands.ack');
         Route::post('/broadcasting/auth', BroadcastAuthController::class)->name('agent.broadcasting.auth');
         Route::post('/events', EventsController::class)->name('agent.events');
+        Route::get('/runners', RunnersController::class)->name('agent.runners');
         Route::post('/runners/{runner}/logs', LogsController::class)->whereUuid('runner')->name('agent.runners.logs');
         Route::get('/me', MeController::class)->name('agent.me');
     });

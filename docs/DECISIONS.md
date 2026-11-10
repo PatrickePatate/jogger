@@ -274,3 +274,13 @@ Running log of choices made while building, where reality differed from the plan
 - **API**: `GET /api/v1/pools`, `GET /api/v1/pools/{id}`, `POST`, `PATCH` (operator token + operator role on the pool). `status` is patchable (`active`/`paused`). No DELETE yet.
 - Pool cards show the `<x-pool-meter>` with zero counts until runners exist (Task 31).
 - `workflow_jobs.pool_id` now has its foreign key (`ON DELETE SET NULL`).
+
+## Task 31 — Runner model, state machine, transitions
+
+- **`RunnerState`** matches IMPL §2.2 exactly (a data-provider test checks all 36 pairs against a table written out separately). `live()` = provisioning/idle/busy (counts against `max_runners`); `present()` adds terminating (may still have a container).
+- **`TransitionRunner`** is the only writer of `state`: `UPDATE … WHERE state IN (previous)`; 0 rows = stale, silent. Sets `state_changed_at`, `started_at` (first idle/busy), `finished_at` (terminal), broadcasts `runner.state-changed` on `private-runners` (admins) and `private-pool.{id}` (pool visibility), and settles a draining host.
+- **Agent events** (`ApplyContainerEvent`, replaces the Task 27 stub): `container_started` → idle. `container_exited`: OOM → failed `oom`; while terminating → gone (keeps the reason given at terminate); exit 0 → terminating → gone `completed` (the table has no direct busy → gone); otherwise failed `container_exited`. `exit_code` stored. A runner that never took a job is deregistered from GitHub. Events for a runner on another host are ignored.
+- **`TerminateRunner`**: → terminating with a reason, `runner.stop` to the host, GitHub `deleteRunner` inline and best effort (errors are logged; the reconciler of Task 37 sweeps leftovers). A runner with no host goes straight to gone. It stays `terminating` until the agent reports the exit; the reaper (Task 35) handles hosts that never answer.
+- **`GET /agent/v1/runners`** now exists and returns every present runner of the host (including provisioning ones), which switches on the agent's orphan cleanup.
+- `RunnerCensus` is now a real count; `job_logs` writes are refused when the runner is placed on a different host; the pool cards show live counts and refresh on runner events.
+- Circular dependency avoided: `DrainHost` → `RunnerCensus` must not resolve to a class that depends on `TransitionRunner`.

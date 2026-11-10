@@ -10,6 +10,7 @@ use App\Domain\Jobs\Logs\SecretSource;
 use App\Domain\Jobs\Models\JobLog;
 use App\Domain\Jobs\Models\WorkflowJob;
 use App\Domain\Runners\Contracts\RunnerEvents;
+use App\Domain\Runners\Models\Runner;
 use App\Events\LogChunkReceived;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
@@ -85,6 +86,7 @@ class IngestionTest extends TestCase
                 return ['hunter2-token', 'ab'];
             }
         });
+        Runner::factory()->create(['id' => $this->runner, 'host_id' => $this->host->id]);
         $job = WorkflowJob::factory()->create(['runner_id' => $this->runner]);
 
         $this->ship(['seq' => 1, 'data' => 'token=hunter2-token b64='.base64_encode('hunter2-token')." ab\n"]);

@@ -2,6 +2,7 @@
 
 use App\Domain\Github\Models\Repository;
 use App\Domain\Jobs\Models\WorkflowJob;
+use App\Domain\Pools\Models\RunnerPool;
 use App\Models\User;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Str;
@@ -20,6 +21,9 @@ Broadcast::channel('job.{jobId}', fn (User $user, string $jobId) => Str::isUuid(
     ->visibleTo($user)->whereKey($jobId)->exists());
 // host.{id} is for agents only (they authenticate with their host credential at /agent/v1/broadcasting/auth), never for browsers.
 Broadcast::channel('host.{hostId}', fn ($user, $hostId) => false);
-Broadcast::channel('pool.{poolId}', fn ($user, $poolId) => false);
+Broadcast::channel('pool.{poolId}', fn (User $user, string $poolId) => Str::isUuid($poolId) && RunnerPool::query()
+    ->visibleTo($user)->whereKey($poolId)->exists());
+// Every runner of the instance: global admins only, like `jobs`.
+Broadcast::channel('runners', fn (User $user) => $user->isAdmin());
 // Hosts are shared infrastructure: any signed-in user sees them, so any signed-in user may follow their status.
 Broadcast::channel('hosts', fn (User $user) => true);

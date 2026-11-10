@@ -1,4 +1,4 @@
-<div class="space-y-5">
+<div class="space-y-5" wire:poll.15s>
     <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
             <h1 class="text-xl font-semibold">Pools</h1>

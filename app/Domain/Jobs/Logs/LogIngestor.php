@@ -7,6 +7,7 @@ namespace App\Domain\Jobs\Logs;
 use App\Domain\Hosts\Models\Host;
 use App\Domain\Jobs\Models\JobLog;
 use App\Domain\Jobs\Models\WorkflowJob;
+use App\Domain\Runners\Models\Runner;
 use App\Events\LogChunkReceived;
 use Illuminate\Support\Facades\DB;
 
@@ -29,7 +30,9 @@ final class LogIngestor
             /** @var JobLog $log */
             $log = JobLog::query()->whereKey($runnerId)->lockForUpdate()->firstOrFail();
 
-            if ($log->host_id !== $host->id) {
+            // Only the host the runner was placed on may write its log.
+            $placedOn = Runner::query()->whereKey($runnerId)->value('host_id');
+            if ($log->host_id !== $host->id || ($placedOn !== null && $placedOn !== $host->id)) {
                 return [null, null];
             }
             // Already have it (the agent retried), or the log is closed: success, nothing to do.
