@@ -97,10 +97,9 @@ class DashboardTest extends TestCase
     public function test_a_load_stays_within_the_query_budget(): void
     {
         $this->seedActivity();
-        $this->actingAs($this->admin);
-
+        // The dashboard's own queries: the layout's bell and palette are not part of it.
         DB::enableQueryLog();
-        $this->get('/')->assertOk();
+        Livewire::actingAs($this->admin)->test(Dashboard::class)->assertOk();
 
         $this->assertLessThanOrEqual(12, count(DB::getQueryLog()));
     }

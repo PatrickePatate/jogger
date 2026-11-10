@@ -153,6 +153,10 @@ final class HttpGithubGateway implements GithubGateway
             return $response;
         }
 
+        if ($response->status() === 401) {
+            $this->limits->markUnauthorized($installationId);
+        }
+
         if (($seconds = $this->http->rateLimitSeconds($response)) !== null) {
             $this->limits->pause($installationId, $seconds);
         }

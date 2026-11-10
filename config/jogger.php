@@ -48,6 +48,16 @@ return [
     'build_cache_max_gb' => (float) env('JOGGER_BUILD_CACHE_MAX_GB', 20),
 
     /*
+    | Alerting: when conditions count as a problem, and how long the same alert stays quiet after a notice.
+    */
+    'alerts' => [
+        'dedupe_minutes' => (int) env('JOGGER_ALERT_DEDUPE_MINUTES', 60),
+        'disk_free_gb' => (int) env('JOGGER_ALERT_DISK_FREE_GB', 10),
+        'webhook_failures' => (int) env('JOGGER_ALERT_WEBHOOK_FAILURES', 5),
+        'provision_failures' => (int) env('JOGGER_ALERT_PROVISION_FAILURES', 3),
+    ],
+
+    /*
     | Default runner image for new pools.
     */
     'default_runner_image' => env('JOGGER_RUNNER_IMAGE', 'ghcr.io/jogger/jogger-runner:latest'),

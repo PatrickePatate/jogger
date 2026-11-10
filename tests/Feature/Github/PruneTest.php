@@ -50,7 +50,7 @@ class PruneTest extends TestCase
 
     public function test_the_command_is_scheduled_daily(): void
     {
-        $events = collect(app(Schedule::class)->events())->filter(fn ($e) => str_contains($e->command, 'jogger:prune'));
+        $events = collect(app(Schedule::class)->events())->filter(fn ($e) => str_ends_with($e->command, 'jogger:prune'));
 
         $this->assertCount(1, $events);
         $this->assertSame('15 3 * * *', $events->first()->expression);

@@ -439,3 +439,12 @@ Running log of choices made while building, where reality differed from the plan
 - Hand-written exporter (`PrometheusExporter`), no package. `GET /metrics` needs `Authorization: Bearer $JOGGER_METRICS_TOKEN` (compared with `hash_equals`); without a configured token the route answers 404; it is throttled to 60 requests a minute.
 - Series: `jogger_runners{state}`, `jogger_jobs{status}`, `jogger_queue_depth`, `jogger_queue_wait_seconds` (histogram over jobs started in the last hour), `jogger_host_up`, host CPU / memory / disk gauges, `jogger_github_rate_limit_remaining{installation}`.
 - The format is checked by a strict parser in the test, not by `promtool` (not installed here, and CI has no step for it).
+
+## Task 52: Notifications and alert rules
+
+- Alerts are **state-based**: `jogger:evaluate-alerts` (every minute) lists the conditions that hold now (`DetectConditions`) and compares them with the open rows in `alerts`. New ones fire, cleared ones resolve; so an alert is noticed within about a minute, not instantly.
+- Conditions: host offline; host with less than 10 GB free (`JOGGER_ALERT_DISK_FREE_GB`); pool with 3 or more runners that failed to start in 10 minutes and none started since; an installation for which GitHub answered 401 even with a fresh token in the last 15 minutes; 5 or more failed webhook deliveries in 15 minutes.
+- **Dedupe**: one row per (type, subject). If it fires again within 60 minutes (`JOGGER_ALERT_DEDUPE_MINUTES`) of its last notice, neither that firing nor its resolution is announced. There are no reminders while an alert stays open.
+- Channels: in-app (always; the bell in the header, administrators only, read state per user), e-mail and generic webhook via rules in Settings → Notifications. Webhook bodies are signed `X-Jogger-Signature-256: sha256=<HMAC-SHA256>` with a per-rule secret shown once. A channel that fails does not stop the others: the error is stored on the rule and on the in-app notice.
+- Mail and webhooks are sent inline by the evaluator (5 s webhook timeout), not queued. Webhook URLs are not restricted to public addresses; only administrators can add them.
+- The dashboard query-budget test now measures the dashboard component alone, since the layout gained the bell (2 queries for administrators).

@@ -37,6 +37,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'two_factor_confirmed_at' => 'datetime',
+            'notifications_read_at' => 'datetime',
             'is_admin' => 'boolean',
             'password' => 'hashed',
         ];

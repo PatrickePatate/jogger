@@ -37,6 +37,17 @@ final class RateLimitTracker
         return is_int($until) && $until > CarbonImmutable::now()->timestamp ? CarbonImmutable::createFromTimestampUTC($until) : null;
     }
 
+    /** GitHub refused our credentials even with a fresh token. Remembered for a while so an alert can be raised. */
+    public function markUnauthorized(int $installationId): void
+    {
+        Cache::put("github.unauthorized.{$installationId}", CarbonImmutable::now()->timestamp, 900);
+    }
+
+    public function unauthorized(int $installationId): bool
+    {
+        return Cache::has("github.unauthorized.{$installationId}");
+    }
+
     /**
      * @return array{remaining: int, reset: int}|null
      */
