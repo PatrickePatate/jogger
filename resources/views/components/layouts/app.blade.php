@@ -52,6 +52,9 @@
                 <div class="min-w-0 flex-1 truncate font-semibold">{{ $title ?? '' }}</div>
                 @isset($actions){{ $actions }}@endisset
                 @auth
+                    <button type="button" x-on:click="$dispatch('open-command-palette')" class="hidden items-center gap-2 rounded-control border border-border px-2.5 py-1 text-[0.8125rem] text-text-secondary hover:bg-ink/5 sm:flex" aria-label="Open command palette">
+                        Search <kbd class="font-sans">⌘K</kbd>
+                    </button>
                     <x-ui.dropdown>
                         <x-slot:trigger>
                             <button type="button" class="flex items-center gap-2 rounded-control px-2 py-1 hover:bg-ink/5">
@@ -75,6 +78,9 @@
     </div>
 
     <x-ui.toast />
+    @auth
+        <livewire:shared.command-palette />
+    @endauth
     @stack('scripts')
     @livewireScripts
 </body>

@@ -397,3 +397,9 @@ Running log of choices made while building, where reality differed from the plan
 - The aggregates are cached per user for 5 s in the default cache store; a `job.status-changed` or `runner.state-changed` broadcast received by the page drops that user's entry. There is no server-side event listener clearing every user's cache: with a 5 s lifetime it would add writes for no visible gain.
 - Hosts and the getting-started checklist are shown to administrators only, as hosts are an admin resource. Once every step is done the result is remembered forever (`overview:checklist-done`), so the checklist costs no queries afterwards.
 - "Queue depth" counts `queued` and `waiting` jobs; the 24 h success rate is success / (success + failure + timed out), ignoring cancelled and skipped jobs.
+
+## Task 46: Command palette
+
+- One Livewire component in the app layout. Opening, closing and arrow/Enter navigation are Alpine only; typing calls the server after a 300 ms debounce. Pages are listed from the routes that exist; resource search starts at two characters, five results per group, through the same `visibleTo` scopes as the pages (hosts for administrators only).
+- Search is `ILIKE '%term%'` without a trigram index: at 10 000 jobs a sequential scan is a few milliseconds. The 200 ms target was not measured at that volume; add a `pg_trgm` index if job counts grow far beyond it.
+- Keyboard behaviour is not covered by a test (no browser tests until Task 58).
