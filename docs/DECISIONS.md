@@ -391,3 +391,9 @@ Running log of choices made while building, where reality differed from the plan
 - Runners page: present runners plus those that ended in the last 24 h (max 200), state filter in the URL, live for administrators (`private-runners`) and polled every 5 s for others. Clicking a name opens a lifecycle stepper under the row (in place of a drawer).
 - **Terminate** needs operator on the runner's pool. Idle/provisioning: one confirm. **Busy: a second, explicit "Terminate anyway"** step server-side, not just a browser confirm. Reason `terminated_by_user`, audit action `runner.terminated` with `forced`.
 - API: `GET /api/v1/runners` (live by default; `state`, `pool` filters), `GET /api/v1/hosts` (any token; no revoked hosts), `DELETE /api/v1/runners/{id}` (operator token + operator on the pool; 409 for a busy runner without `force=true`).
+
+## Task 45: Overview dashboard
+
+- The aggregates are cached per user for 5 s in the default cache store; a `job.status-changed` or `runner.state-changed` broadcast received by the page drops that user's entry. There is no server-side event listener clearing every user's cache: with a 5 s lifetime it would add writes for no visible gain.
+- Hosts and the getting-started checklist are shown to administrators only, as hosts are an admin resource. Once every step is done the result is remembered forever (`overview:checklist-done`), so the checklist costs no queries afterwards.
+- "Queue depth" counts `queued` and `waiting` jobs; the 24 h success rate is success / (success + failure + timed out), ignoring cancelled and skipped jobs.

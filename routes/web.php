@@ -15,6 +15,7 @@ use App\Livewire\Github\Installations;
 use App\Livewire\Hosts\Index as HostsIndex;
 use App\Livewire\Jobs\Index as JobsIndex;
 use App\Livewire\Jobs\Show as JobShow;
+use App\Livewire\Overview\Dashboard;
 use App\Livewire\Pools\Form as PoolForm;
 use App\Livewire\Pools\Index as PoolsIndex;
 use App\Livewire\Runners\Index as RunnersIndex;
@@ -40,7 +41,7 @@ Route::middleware('signed')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
-    Route::view('/', 'overview')->name('overview');
+    Route::get('/', Dashboard::class)->name('overview');
     Route::get('/hosts', HostsIndex::class)->name('hosts.index');
     Route::get('/jobs', JobsIndex::class)->name('jobs.index');
     Route::get('/jobs/{job}', JobShow::class)->name('jobs.show');
