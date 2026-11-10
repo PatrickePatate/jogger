@@ -334,3 +334,10 @@ Running log of choices made while building, where reality differed from the plan
 - A queued job in a warm pool triggers one provisioning immediately (deficit counts the job), so the pool is back at `min_idle` as soon as the job takes an idle runner; no runner is started "for" the job specifically.
 - Scale-down is only the idle timeout; `min_idle` runners are never reaped for idleness, so a warm runner can sit for days. GitHub may expire a long-idle JIT registration; Task 37's reconciler marks such runners failed.
 - Concurrency with webhooks is bounded by the pool row lock in `ProvisionRunner`; the invariant test is Task 38.
+
+## Task 37 — Reconciler against GitHub
+
+- `jogger:reconcile` every minute, single-flight through a cache lock (5 min expiry); an overlapping run prints a line and exits 0. Rate limits and GitHub errors end the pass quietly.
+- **Jobs**: asks GitHub for queued jobs of (a) repositories targeted by an active repository-scope pool and (b) repositories of organization-scope installations that had a job in the last 24 h; at most 50 repositories per pass. Unknown jobs are imported; every queued job is passed to `ScheduleJob` again (a no-op unless the pool is short). **A brand-new repository in an organization pool whose very first webhook was lost is not discovered** — listing every repository of a large organization each minute is too expensive.
+- **Runners**: per distinct pool scope, `jogger-…` runners GitHub lists that Jogger does not know or knows as gone/failed are deleted; idle/busy Jogger runners GitHub has not listed for 5 min become failed `github_missing` and get a `runner.stop`.
+- **Two Jogger instances serving the same repository or organization would delete each other's runners** (both use the `jogger-` prefix). One instance per GitHub scope is assumed.

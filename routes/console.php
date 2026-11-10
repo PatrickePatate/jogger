@@ -14,3 +14,4 @@ Schedule::command('jogger:redeliver-commands')->everyFifteenSeconds()->withoutOv
 Schedule::command('jogger:flush-logs')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('jogger:reap-runners')->everyThirtySeconds()->withoutOverlapping();
 Schedule::command('jogger:reconcile-pools')->everyFifteenSeconds()->withoutOverlapping();
+Schedule::command('jogger:reconcile')->everyMinute()->withoutOverlapping();
