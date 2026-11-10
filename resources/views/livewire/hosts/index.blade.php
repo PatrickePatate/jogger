@@ -45,6 +45,19 @@
                         <span>Agent {{ $host->agent_version ?? 'unknown' }}</span>
                         <span>{{ $host->last_seen_at ? 'seen '.$host->last_seen_at->diffForHumans() : 'never seen' }}</span>
                     </p>
+
+                    @can('admin')
+                        @php $state = $host->status->value; @endphp
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            @if (in_array($state, ['cordoned', 'draining'], true))
+                                <x-ui.button size="xs" variant="outline" wire:click="uncordon('{{ $host->id }}')">Resume</x-ui.button>
+                            @else
+                                <x-ui.button size="xs" variant="outline" wire:click="cordon('{{ $host->id }}')">Cordon</x-ui.button>
+                                <x-ui.button size="xs" variant="outline" wire:click="drain('{{ $host->id }}')" wire:confirm="Drain {{ $host->name }}? No new runners will start there; running jobs finish first.">Drain</x-ui.button>
+                            @endif
+                            <x-ui.button size="xs" variant="destructive" wire:click="revoke('{{ $host->id }}')" wire:confirm="Revoke {{ $host->name }}? Its agent is disconnected for good and must be enrolled again.">Revoke</x-ui.button>
+                        </div>
+                    @endcan
                 </x-ui.card>
             @endforeach
         </div>

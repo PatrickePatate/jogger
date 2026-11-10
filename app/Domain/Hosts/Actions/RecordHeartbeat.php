@@ -10,6 +10,8 @@ use App\Domain\Hosts\Models\Host;
 
 final class RecordHeartbeat
 {
+    public function __construct(private readonly DrainHost $drain) {}
+
     /**
      * Stores the host's latest capacity facts and marks it alive. A pending or offline host becomes online;
      * cordoned and draining hosts keep their operator-chosen state. Broadcasts only when the status changes.
@@ -34,6 +36,9 @@ final class RecordHeartbeat
         if ($changed) {
             event(new HostStatusChanged($host));
         }
+
+        // A draining host whose last runner is gone settles into cordoned.
+        $this->drain->settle($host);
 
         return $host;
     }

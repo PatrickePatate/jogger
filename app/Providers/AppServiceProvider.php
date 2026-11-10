@@ -18,8 +18,10 @@ use App\Domain\Hosts\Contracts\HostDriver;
 use App\Domain\Hosts\Drivers\AgentHostDriver;
 use App\Domain\Jobs\Logs\NoSecrets;
 use App\Domain\Jobs\Logs\SecretSource;
+use App\Domain\Runners\Contracts\RunnerCensus;
 use App\Domain\Runners\Contracts\RunnerEvents;
 use App\Domain\Runners\Support\LogRunnerEvents;
+use App\Domain\Runners\Support\NoRunners;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -40,6 +42,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Placeholders until the runner state machine (Task 31) and secrets (Phase 8) exist.
         $this->app->bind(RunnerEvents::class, LogRunnerEvents::class);
+        $this->app->bind(RunnerCensus::class, NoRunners::class);
         $this->app->bind(SecretSource::class, NoSecrets::class);
 
         $this->app->singleton(RateLimitTracker::class);

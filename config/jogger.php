@@ -40,6 +40,7 @@ return [
     | Auto-enroll the control plane's own Docker socket as a host.
     */
     'local_host_enabled' => (bool) env('JOGGER_LOCAL_HOST', false),
+    'local_host_token' => env('JOGGER_LOCAL_HOST_TOKEN'),
 
     /*
     | Default runner image for new pools.

@@ -1,0 +1,88 @@
+# Jogger — production compose (initial version; images and the installer are finished in the packaging tasks).
+#   docker compose -f docker/compose/docker-compose.yml --env-file .env up -d
+#   add `--profile local-host` (with JOGGER_LOCAL_HOST=true and JOGGER_LOCAL_HOST_TOKEN set) to also run jobs on this machine.
+name: jogger
+
+x-app: &app
+  image: ${JOGGER_IMAGE:-ghcr.io/patrickepatate/jogger:latest}
+  restart: unless-stopped
+  env_file: ../../.env
+  environment:
+    DB_HOST: postgres
+    REDIS_HOST: redis
+  volumes:
+    - app-storage:/var/www/html/storage/app
+  depends_on:
+    postgres: { condition: service_healthy }
+    redis: { condition: service_healthy }
+
+services:
+  app:
+    <<: *app
+    command: ["sh", "-c", "php artisan jogger:install && exec php artisan octane:start --host=0.0.0.0 --port=8000 2>/dev/null || exec php artisan serve --host=0.0.0.0 --port=8000"]
+    ports:
+      - "${JOGGER_HTTP_PORT:-8000}:8000"
+
+  reverb:
+    <<: *app
+    command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
+    ports:
+      - "${JOGGER_REVERB_PORT:-8080}:8080"
+
+  horizon:
+    <<: *app
+    command: ["php", "artisan", "horizon"]
+
+  scheduler:
+    <<: *app
+    command: ["php", "artisan", "schedule:work"]
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-jogger}
+      POSTGRES_USER: ${DB_USERNAME:-jogger}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-jogger} -d ${DB_DATABASE:-jogger}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Optional: run jobs on the server's own machine. Off by default — this container controls the host's Docker.
+  agent:
+    profiles: ["local-host"]
+    image: ${JOGGER_AGENT_IMAGE:-ghcr.io/patrickepatate/jogger-agent:latest}
+    restart: unless-stopped
+    # The image runs as nonroot; the group must match the Docker socket's group on this machine.
+    group_add:
+      - "${DOCKER_GID:-999}"
+    environment:
+      JOGGER_SERVER: http://app:8000
+      JOGGER_ENROLL_TOKEN: ${JOGGER_LOCAL_HOST_TOKEN:-}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - agent-data:/var/lib/jogger-agent
+    depends_on:
+      - app
+
+volumes:
+  app-storage:
+  postgres-data:
+  redis-data:
+  agent-data:

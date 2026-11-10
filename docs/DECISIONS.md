@@ -254,3 +254,11 @@ Running log of choices made while building, where reality differed from the plan
 - **Broadcast** `log.chunk` on `private-job.{id}` in slices of ≤ 2000 characters (Pusher message cap).
 - **The log text is read from the raw request body**: the global `TrimStrings` middleware strips the trailing newline otherwise.
 - **Events**: `POST /agent/v1/events` → `ApplyAgentEvent` → `RunnerEvents` contract, bound to a logging stub until Task 31. Unknown types return 202 `handled:false`.
+
+## Task 28 — Host operations: cordon, drain, revoke, local host
+
+- **Operator actions** are conditional updates through `SetHostStatus` (broadcast once, audit logged). Cordon ↔ Resume; Resume restores `online`/`offline`/`pending` from `last_seen_at`. Revoked is terminal.
+- **Drain settles on heartbeat**: `DrainHost::settle` turns `draining` into `cordoned` when `RunnerCensus::activeOn($host)` is 0. The census is bound to `NoRunners` (always 0) until Task 31, so today a drain cordons immediately. A draining host that is offline settles only when it heartbeats again; Task 31 should also call `settle` when a runner reaches a terminal state.
+- **Revoke** nulls the credential hash, sets `revoked_at`, fails undelivered commands (`host_revoked`). "Disconnect its channel" is met by denial, not a kick: every agent HTTP call and channel authorization looks the host up, so both fail at once; an already-open socket stays connected until it drops but only carries hints the agent can no longer act on. Revoked hosts are hidden from the Hosts page.
+- **Local host**: `JOGGER_LOCAL_HOST=true` plus a shared `JOGGER_LOCAL_HOST_TOKEN` (`jhe_` + ≥ 32 chars) in `.env`. `jogger:install` (migrate + this) registers that value as a one-time enrollment token named `local` (24 h window, re-run extends it); the compose `agent` service (profile `local-host`) passes it as `JOGGER_ENROLL_TOKEN`. Off by default.
+- **`docker/compose/docker-compose.yml` is an initial draft**: image names are placeholders, the app command falls back to `artisan serve`, and nothing has been run from it. The packaging tasks own making it real. The agent container needs `DOCKER_GID` to match the socket's group.
