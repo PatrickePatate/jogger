@@ -1,15 +1,22 @@
-# Jogger — production compose (initial version; images and the installer are finished in the packaging tasks).
+# Jogger: production stack. See docs/INSTALL.md.
+#   cp .env.production.example .env   # then edit it
 #   docker compose -f docker/compose/docker-compose.yml --env-file .env up -d
-#   add `--profile local-host` (with JOGGER_LOCAL_HOST=true and JOGGER_LOCAL_HOST_TOKEN set) to also run jobs on this machine.
+# Profiles:  --profile https       Caddy with automatic certificates for JOGGER_DOMAIN
+#            --profile local-host  an agent on this machine, so jobs run here too
 name: jogger
 
 x-app: &app
   image: ${JOGGER_IMAGE:-ghcr.io/patrickepatate/jogger:latest}
   restart: unless-stopped
   env_file: ../../.env
-  environment:
+  environment: &app-env
+    DB_CONNECTION: pgsql
     DB_HOST: postgres
     REDIS_HOST: redis
+    REVERB_HOST: reverb
+    REVERB_PORT: "8080"
+    REVERB_SCHEME: http
+    JOGGER_ROLE: worker
   volumes:
     - app-storage:/var/www/html/storage/app
   depends_on:
@@ -19,7 +26,10 @@ x-app: &app
 services:
   app:
     <<: *app
-    command: ["sh", "-c", "php artisan jogger:install && exec php artisan octane:start --host=0.0.0.0 --port=8000 2>/dev/null || exec php artisan serve --host=0.0.0.0 --port=8000"]
+    environment:
+      <<: *app-env
+      JOGGER_ROLE: app
+    command: ["app"]
     ports:
       - "${JOGGER_HTTP_PORT:-8000}:8000"
 
@@ -28,14 +38,21 @@ services:
     command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
     ports:
       - "${JOGGER_REVERB_PORT:-8080}:8080"
+    depends_on:
+      app: { condition: service_healthy }
 
   horizon:
     <<: *app
     command: ["php", "artisan", "horizon"]
+    stop_grace_period: 60s
+    depends_on:
+      app: { condition: service_healthy }
 
   scheduler:
     <<: *app
     command: ["php", "artisan", "schedule:work"]
+    depends_on:
+      app: { condition: service_healthy }
 
   postgres:
     image: postgres:17-alpine
@@ -64,7 +81,23 @@ services:
       timeout: 3s
       retries: 10
 
-  # Optional: run jobs on the server's own machine. Off by default — this container controls the host's Docker.
+  caddy:
+    profiles: ["https"]
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      JOGGER_DOMAIN: ${JOGGER_DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on:
+      - app
+      - reverb
+
+  # Optional: run jobs on the server's own machine. Off by default: this container controls the host's Docker.
   agent:
     profiles: ["local-host"]
     image: ${JOGGER_AGENT_IMAGE:-ghcr.io/patrickepatate/jogger-agent:latest}
@@ -79,10 +112,11 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - agent-data:/var/lib/jogger-agent
     depends_on:
-      - app
+      app: { condition: service_healthy }
 
 volumes:
   app-storage:
   postgres-data:
   redis-data:
   agent-data:
+  caddy-data:

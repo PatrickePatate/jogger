@@ -1,6 +1,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="csrf-token" content="{{ csrf_token() }}">
+<meta name="jogger-reverb" content="{{ json_encode(['key' => config('broadcasting.connections.reverb.key')] + config('jogger.reverb_public')) }}">
 <title>{{ isset($title) ? $title.' · ' : '' }}{{ config('app.name') }}</title>
 {{-- Apply the saved theme before first paint to avoid a flash. --}}
 <script nonce="{{ Vite::cspNonce() }}">

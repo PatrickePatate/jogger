@@ -15,7 +15,8 @@ final class Install extends Command
 {
     public function handle(EnrollLocalHost $local): int
     {
-        $this->call('migrate', ['--force' => true]);
+        // --isolated holds a lock in the cache store: when several replicas start together, one migrates.
+        $this->call('migrate', ['--force' => true, '--isolated' => true]);
 
         match ($local()) {
             'disabled' => $this->line('Local host: disabled (set JOGGER_LOCAL_HOST=true to run jobs on this machine).'),

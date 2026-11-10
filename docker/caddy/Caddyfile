@@ -1,0 +1,10 @@
+# HTTPS front for Jogger (compose profile `https`). Certificates are obtained automatically for JOGGER_DOMAIN.
+{$JOGGER_DOMAIN} {
+	encode zstd gzip
+
+	# Reverb: browser and agent websockets, and the server's own event publishing.
+	@reverb path /app/* /apps/*
+	reverse_proxy @reverb reverb:8080
+
+	reverse_proxy app:8000
+}

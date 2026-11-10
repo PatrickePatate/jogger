@@ -28,6 +28,7 @@ use App\Livewire\Settings\Notifications as NotificationSettings;
 use App\Livewire\Settings\Security;
 use App\Livewire\Settings\Tokens;
 use App\Livewire\Setup\FirstRun;
+use App\Support\Health\HealthCheck;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/metrics', MetricsController::class)->middleware('throttle:60,1')->name('metrics');
@@ -59,6 +60,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/pools/create', PoolForm::class)->name('pools.create');
     Route::get('/pools/{pool}/edit', PoolForm::class)->whereUuid('pool')->name('pools.edit');
     Route::get('/insights', InsightsIndex::class)->name('insights.index');
+    Route::get('/health', fn (HealthCheck $health) => response()->json($report = $health->report(), $report['status'] === 'ok' ? 200 : 503))->middleware('can:admin')->name('health');
     Route::get('/secrets', SecretsIndex::class)->name('secrets.index');
     Route::get('/settings/security', Security::class)->name('settings.security');
     Route::get('/settings/tokens', Tokens::class)->name('settings.tokens');

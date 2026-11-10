@@ -468,3 +468,12 @@ Running log of choices made while building, where reality differed from the plan
 - `jogger:rotate-key`: re-encrypts GitHub App credentials, secrets, webhook signing secrets and 2FA columns in one transaction, clears the cache, prints the new key (or writes `.env` with `--write`). A test fails if a model gains an `encrypted` cast that the command does not cover. The pending-command payloads noted in Task 48 are still stored unencrypted.
 - `composer audit` and `npm audit --omit=dev`: no advisories. Larastan level 6 clean. Rate limits were not re-reviewed beyond adding one to `/metrics`.
 - `docs/SECURITY.md` written.
+
+## Task 57: Production image, compose install, health checks
+
+- `docker/app/Dockerfile`: three stages (Composer, Vite build, FrankenPHP on PHP 8.4), runs as a non-root user, serves with `frankenphp php-server` (no Octane). One image for every role: `app` migrates then serves; Reverb, Horizon and the scheduler are the same image with another command and wait for `app` to be healthy.
+- **Built and run locally (amd64 only)**: image 717 MB uncompressed (compressed size not measured, arm64 not built, nothing published). The whole stack from the final compose file came up healthy in 24 s on spare ports and served `/setup`; it was then removed. Caddy (`--profile https`) and the `local-host` agent profile were not started.
+- Migrations run with `migrate --isolated` (a lock in the cache store, Redis in production) instead of a hand-written advisory lock. Two replicas starting together were not tried.
+- The browser reads where Reverb is from a `<meta name="jogger-reverb">` tag (`REVERB_PUBLIC_*`, defaulting to the page's own host and port), so the built assets are not tied to a domain. Websockets through this path were not exercised in a browser.
+- `GET /health` (administrators): database, Redis, Reverb, queue lag, GitHub credentials, hosts; 503 and `degraded` when one fails. The "Redis stopped" case is tested with a failing Redis connection, not by stopping Redis.
+- Added `.dockerignore` (keeps `.env` out of images), `.env.production.example`, `docs/INSTALL.md`.

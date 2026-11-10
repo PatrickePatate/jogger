@@ -63,6 +63,15 @@ return [
     'csp_report_only' => (bool) env('JOGGER_CSP_REPORT_ONLY', false),
 
     /*
+    | Where browsers reach Reverb. Empty values mean "the page's own host / port / scheme".
+    */
+    'reverb_public' => [
+        'host' => env('REVERB_PUBLIC_HOST'),
+        'port' => env('REVERB_PUBLIC_PORT'),
+        'scheme' => env('REVERB_PUBLIC_SCHEME'),
+    ],
+
+    /*
     | Default runner image for new pools.
     */
     'default_runner_image' => env('JOGGER_RUNNER_IMAGE', 'ghcr.io/jogger/jogger-runner:latest'),
