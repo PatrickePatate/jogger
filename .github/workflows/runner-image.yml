@@ -1,6 +1,8 @@
 name: Runner image
 
 on:
+  release:
+    types: [published] # a Jogger release also refreshes the runner image
   schedule:
     - cron: "17 4 * * 1" # weekly: GitHub refuses runners that fall too far behind
   workflow_dispatch:

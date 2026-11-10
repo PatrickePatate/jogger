@@ -485,3 +485,8 @@ Running log of choices made while building, where reality differed from the plan
 - **Not done**: no screenshots (`docs/img/` does not exist); `openapi.yaml` was not run through an external linter (downloading one was not permitted in this session); nobody has walked through INSTALL + GITHUB-APP to a first green job, which cannot happen before the real run of Task 40. The troubleshooting advice is derived from the code's failure paths, not from incidents.
 - Known inconsistency left as is: the agent image is `ghcr.io/jogger/jogger-agent` in the "Add host" command and in the docs, but `ghcr.io/patrickepatate/jogger-agent` in the compose file, and no image is published under either name yet. Settle the registry namespace in the release task (60).
 - Tasks 58, 59, 60 and 62 are still to do; `docs/TASKS.md` now starts with a status table.
+
+## Image publishing (part of Task 60, done ahead of the rest)
+- Images are published under `ghcr.io/patrickepatate/` (`jogger`, `jogger-agent`, `jogger-runner`); every `ghcr.io/jogger/…` reference was renamed. First push was done by hand from a local amd64 build on 2026-11-10; the packages are private until made public on GitHub.
+- `.github/workflows/release-images.yml` builds and pushes `jogger` and `jogger-agent` (amd64 + arm64) when a GitHub release is published, tagged with the release version; `:latest` only moves for a non-pre-release. `runner-image.yml` also runs on a release.
+- **Not verified**: the workflow has never run (nothing is pushed to GitHub), and the server image has never been built for arm64. The rest of Task 60 (changelog, agent binaries, CI gating) is still to do.
