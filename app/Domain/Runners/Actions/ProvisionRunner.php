@@ -35,6 +35,11 @@ final class ProvisionRunner
         private readonly ResolvesSecrets $secrets,
     ) {}
 
+    public static function toolCacheVolume(RunnerPool $pool): string
+    {
+        return 'jogger-toolcache-'.$pool->id;
+    }
+
     /**
      * @return Runner|null null when the pool is paused or already at max_runners (GitHub is not called)
      *
@@ -64,6 +69,8 @@ final class ProvisionRunner
                 'labels' => $pool->labels,
                 'docker_mode' => $pool->docker_mode->value,
                 ...(($auth = $this->secrets->registryAuthFor($pool)) !== null ? ['registry_auth' => $auth] : []),
+                // One volume per pool on each host; the name never crosses pools, so neither does the cache.
+                ...($pool->persist_tool_cache ? ['tool_cache_volume' => self::toolCacheVolume($pool)] : []),
             ]);
         } catch (Throwable $e) {
             ($this->transition)($runner, RunnerState::Failed, ['exit_reason' => $runner->github_runner_id === null ? 'jit_failed' : 'dispatch_failed']);

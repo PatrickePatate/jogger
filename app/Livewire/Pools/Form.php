@@ -56,6 +56,8 @@ final class Form extends Component
 
     public string $allowed_host_labels = '';
 
+    public bool $persist_tool_cache = false;
+
     public bool $confirm_public = false;
 
     public function mount(?string $pool = null): void
@@ -92,6 +94,7 @@ final class Form extends Component
             'idle_ttl_seconds' => $record->idle_ttl_seconds,
             'docker_mode' => $record->docker_mode->value,
             'allowed_host_labels' => implode(', ', $record->allowed_host_labels),
+            'persist_tool_cache' => $record->persist_tool_cache,
         ]);
     }
 
@@ -194,6 +197,7 @@ final class Form extends Component
             'idle_ttl_seconds' => $this->idle_ttl_seconds,
             'docker_mode' => $this->docker_mode,
             'allowed_host_labels' => $list($this->allowed_host_labels),
+            'persist_tool_cache' => $this->persist_tool_cache,
         ];
 
         return $this->poolId !== null ? $input : $input + [

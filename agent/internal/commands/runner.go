@@ -53,13 +53,21 @@ func RegisterRunner(d *Dispatcher, r *docker.Runner, emit func(events.Event), on
 		return map[string]any{"image": p.Image}, nil
 	})
 
-	d.Register("host.prune", func(ctx context.Context, _ Command) (map[string]any, error) {
+	d.Register("host.prune", func(ctx context.Context, cmd Command) (map[string]any, error) {
+		var p struct {
+			MaxBuildCacheGB float64 `json:"max_build_cache_gb"`
+		}
+		_ = decode(cmd.Payload, &p) // an empty payload is a plain prune
 		res, err := r.Prune(ctx)
 		if err != nil {
 			return nil, err
 		}
+		freed, err := r.PruneBuildCache(ctx, p.MaxBuildCacheGB)
+		if err != nil {
+			return nil, err
+		}
 
-		return map[string]any{"images_deleted": res.ImagesDeleted, "bytes_freed": res.BytesFreed}, nil
+		return map[string]any{"images_deleted": res.ImagesDeleted, "bytes_freed": res.BytesFreed + freed, "build_cache_bytes_freed": freed}, nil
 	})
 
 	d.Register("runner.stop", func(ctx context.Context, cmd Command) (map[string]any, error) {

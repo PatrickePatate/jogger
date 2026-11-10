@@ -418,3 +418,9 @@ Running log of choices made while building, where reality differed from the plan
 - `env` and `registry_auth` are removed from the stored `host_commands` payload when the command is acknowledged, like `jit_config`. **While a command is pending they are in that table unencrypted**; encrypting the outbox payload is left for the hardening task.
 - Access: global secrets need an administrator; installation secrets an operator of the installation; pool secrets an operator of the pool. Viewers see names only. Nobody can read a value back; the Livewire component drops it from its state as soon as it is saved. Env names starting with `GITHUB_`, `RUNNER_`, `ACTIONS_` and `JIT_CONFIG` are refused.
 - Docker Desktop had stopped during this task and was started again to run the tests.
+
+## Task 49: Tool-cache volumes and host build-cache policy
+
+- A pool with "Keep the tool cache between jobs" sends `tool_cache_volume: jogger-toolcache-{pool id}` in `runner.start`. The agent creates that named volume if missing and mounts it at `/opt/hostedtoolcache`. One volume per pool per host; the agent refuses any name without that prefix, so the server can never make it mount a host path or another volume.
+- The volume is labelled `jogger.tool-cache`, not with the host label, so the leftover-volume prune leaves it alone when no runner is using it. Nothing deletes it when the pool is deleted (left for later).
+- `jogger:prune-hosts` (daily 03:45) sends `host.prune` with `max_build_cache_gb` (`JOGGER_BUILD_CACHE_MAX_GB`, default 20, 0 = leave alone) to reachable hosts; the agent calls Docker's build prune with `keep-storage`. The cap is instance-wide config for now, not a per-host setting. The agent's volume test ran against the local Docker engine; build-cache pruning was only unit-tested for the query it sends.

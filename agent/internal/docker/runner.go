@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -30,7 +31,12 @@ type Spec struct {
 	Command    []string          `json:"command,omitempty"` // overrides the image's entrypoint arguments
 	DindImage  string            `json:"dind_image,omitempty"`
 	Registry   *RegistryAuth     `json:"registry_auth,omitempty"`
+	// ToolCacheVolume, when set, is a named volume shared by the pool's runners on this host.
+	ToolCacheVolume string `json:"tool_cache_volume,omitempty"`
 }
+
+// toolCachePrefix is the only shape of volume name the server may ask for: never a host path, never a foreign volume.
+const toolCachePrefix = "jogger-toolcache-"
 
 // DefaultDindImage is the rootless Docker-in-Docker sidecar used when docker_mode is "dind".
 const DefaultDindImage = "docker:dind-rootless"
@@ -44,6 +50,8 @@ func (s Spec) Validate() error {
 		return errors.New("image is required")
 	case s.DockerMode != "" && s.DockerMode != "none" && s.DockerMode != "dind":
 		return fmt.Errorf("docker_mode %q is not supported (use \"none\" or \"dind\")", s.DockerMode)
+	case s.ToolCacheVolume != "" && (!strings.HasPrefix(s.ToolCacheVolume, toolCachePrefix) || len(s.ToolCacheVolume) == len(toolCachePrefix) || !safeID(s.ToolCacheVolume)):
+		return errors.New("tool_cache_volume is malformed")
 	case s.CPU < 0 || s.MemoryMB < 0:
 		return errors.New("cpu and memory_mb cannot be negative")
 	}
@@ -104,6 +112,9 @@ func (r *Runner) Start(ctx context.Context, s Spec) (Started, error) {
 		err = r.startDind(ctx, s, net)
 	}
 	if err == nil {
+		err = r.ensureToolCache(ctx, s)
+	}
+	if err == nil {
 		id, err = r.create(ctx, s, net, labels)
 	}
 	if err == nil {
@@ -153,8 +164,15 @@ func (r *Runner) create(ctx context.Context, s Spec, net string, labels map[stri
 		host["MemorySwap"] = s.MemoryMB << 20 // no swap: hitting the limit must OOM-kill, not thrash the host
 	}
 
+	mounts := []map[string]any{}
 	if s.DockerMode == "dind" {
-		host["Mounts"] = []map[string]any{{"Type": "volume", "Source": certsVolume(s.RunnerID), "Target": certsDir, "ReadOnly": true}}
+		mounts = append(mounts, map[string]any{"Type": "volume", "Source": certsVolume(s.RunnerID), "Target": certsDir, "ReadOnly": true})
+	}
+	if m := toolCacheMount(s); m != nil {
+		mounts = append(mounts, m)
+	}
+	if len(mounts) > 0 {
+		host["Mounts"] = mounts
 	}
 
 	body := map[string]any{"Image": s.Image, "Env": env, "Labels": labels, "HostConfig": host}

@@ -9,6 +9,7 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('jogger:prune')->dailyAt('03:15')->onOneServer();
+Schedule::command('jogger:prune-hosts')->dailyAt('03:45')->onOneServer();
 Schedule::command('jogger:mark-offline-hosts')->everyTenSeconds()->withoutOverlapping();
 Schedule::command('jogger:redeliver-commands')->everyFifteenSeconds()->withoutOverlapping();
 Schedule::command('jogger:flush-logs')->everyFiveMinutes()->withoutOverlapping();

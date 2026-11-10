@@ -43,6 +43,11 @@ return [
     'local_host_token' => env('JOGGER_LOCAL_HOST_TOKEN'),
 
     /*
+    | Docker build cache each host may keep, in GB; the daily host prune trims it down to this. 0 leaves it alone.
+    */
+    'build_cache_max_gb' => (float) env('JOGGER_BUILD_CACHE_MAX_GB', 20),
+
+    /*
     | Default runner image for new pools.
     */
     'default_runner_image' => env('JOGGER_RUNNER_IMAGE', 'ghcr.io/jogger/jogger-runner:latest'),
