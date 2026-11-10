@@ -358,3 +358,8 @@ Running log of choices made while building, where reality differed from the plan
 - **A failed pull blocks nothing**: it is shown per host with the error, and `PickHost` merely prefers hosts whose image is `ready` (then most free memory). With no warm host it falls back to any fitting host, which pulls when the runner starts.
 - **Not done: private registry credentials.** The secrets store does not exist yet (Phase 8), so pulls are anonymous; the payload has room for an auth field later. `ready` also goes stale if someone prunes images on the host (`host.prune` removes only dangling images, so normally it holds).
 - A host that enrolls after the pool was saved gets no pre-pull until the pool's image changes or someone clicks "Pull again".
+
+## Task 40 — First real end-to-end run
+
+- **Not performed.** It needs a real GitHub App, repository and public webhook URL, which this work could not create. `docs/E2E.md` holds the procedure, the checks, the parts most likely to need fixing, and an empty results table; `tests/Script/e2e.sh` dispatches the workflow with `gh` and follows the job through `/api/v1/jobs` (added in Task 41). The script is syntax-checked only.
+- Consequence: the "End-to-end alpha" milestone is **not reached** until someone runs this. Everything after it is built on the fake gateway.
