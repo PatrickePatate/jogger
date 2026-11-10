@@ -205,3 +205,15 @@ Running log of choices made while building, where reality differed from the plan
 - **Failure shapes:** unknown type → `ok:false, result:{error:"unsupported", type}`; handler error or panic → `ok:false, result:{error}`. Both are final acks, so the server does not redeliver them forever.
 - `main.go` starts the dispatcher with no handlers yet; Task 24 registers `runner.start` / `runner.stop`. Until then every command is acked `unsupported`.
 - Not exercised: a real Reverb server (tests use a fake Pusher endpoint). Worth a manual check once Task 24 gives the agent something to do.
+
+## Task 24 — Agent: runner container lifecycle and hardening
+
+- **Docker Engine API over the unix socket, stdlib only** (`agent/internal/docker`), not the Docker SDK: the agent needs about ten endpoints and the SDK would be a large dependency tree in a security-sensitive binary.
+- **Idempotency is by label, not by memory.** `runner.start` looks up a container labelled `jogger.runner=<id>` first; if there is one it creates nothing and reports `existing:true`. This survives agent restarts, unlike the dispatcher's in-memory de-dupe from Task 23. `container_started` is only emitted for a container this call really created. A failed start removes its half-built network/container so a retry starts clean.
+- **Hardening as in IMPL §10.3:** `no-new-privileges`, `CapDrop ALL`, `PidsLimit 2048`, a private bridge network per runner, no privileged mode, no host socket. `MemorySwap` is set equal to `Memory` so hitting the limit OOM-kills instead of swapping the host.
+- **`docker_mode` other than `none` is rejected** with an error ack until the DinD sidecar exists (Task 26).
+- **Exit reporting uses the engine event stream** (`die`, `oom` filtered by `jogger.host`). `AutoRemove` deletes the container, so the exit code and OOM flag can only come from events; the watcher also removes the runner's network. It resumes from the last event time after a reconnect, so a duplicate `container_exited` is possible across a blip; the control plane must treat it idempotently (Task 27).
+- **Events are best-effort.** `POST /agent/v1/events` does not exist until Task 27; the emitter retries transient failures (8 attempts, backoff), drops rejections (404 etc.) with a warning, and keeps a bounded queue (oldest dropped).
+- `Spec.Command` (payload `command`) overrides the image's arguments; it exists so tests can use an alpine stand-in and is trusted because it comes from the control plane.
+- **Test environment note:** the integration tests use `alpine:latest` and skip themselves when it is not local. On this dev machine the CLI uses Docker Desktop's socket, not `/var/run/docker.sock`, so run them with `DOCKER_SOCKET=$HOME/.docker/desktop/docker.sock go test ./internal/docker`. CI pulls alpine first. Testcontainers was not used: the plain API client already is the thing under test.
+- Not verified: a real GitHub runner image, and `stats.go` only provides container listing/counting for now (resource figures in the heartbeat are a later task).

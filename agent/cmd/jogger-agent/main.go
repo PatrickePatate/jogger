@@ -13,7 +13,9 @@ import (
 
 	"github.com/PatrickePatate/jogger/agent/internal/commands"
 	"github.com/PatrickePatate/jogger/agent/internal/config"
+	"github.com/PatrickePatate/jogger/agent/internal/docker"
 	"github.com/PatrickePatate/jogger/agent/internal/enroll"
+	"github.com/PatrickePatate/jogger/agent/internal/events"
 	"github.com/PatrickePatate/jogger/agent/internal/telemetry"
 	"github.com/PatrickePatate/jogger/agent/internal/transport"
 )
@@ -67,6 +69,15 @@ func run() error {
 	client := newClient(cred.Credential)
 
 	dispatcher := commands.NewDispatcher(commands.HTTPAPI{Client: client}, 15*time.Second, 4)
+	runner := &docker.Runner{Docker: docker.New(cfg.DockerSocket), HostID: cred.HostID}
+	emitter := events.NewEmitter(func(ctx context.Context, e events.Event) error {
+		return client.Do(ctx, "POST", "/agent/v1/events", e, nil)
+	}, 256)
+	commands.RegisterRunner(dispatcher, runner, emitter.Emit)
+	go emitter.Run(ctx)
+	go runner.Watch(ctx, func(x docker.Exit) {
+		emitter.Emit(events.Event{Type: events.ContainerExited, RunnerID: x.RunnerID, Data: map[string]any{"exit_code": x.ExitCode, "oom": x.OOM}})
+	})
 	go dispatcher.Run(ctx)
 	if cred.Reverb != nil {
 		pusher := &transport.Pusher{

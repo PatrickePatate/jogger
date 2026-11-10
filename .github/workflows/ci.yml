@@ -105,9 +105,12 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: agent/go.mod
-          cache-dependency-path: agent/go.mod
+          cache-dependency-path: agent/go.sum
 
       - run: go vet ./...
+
+      # The Docker integration tests skip themselves unless this image is present locally.
+      - run: docker pull alpine:latest
 
       - run: go test -race ./...
 
