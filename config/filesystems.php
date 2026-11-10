@@ -38,6 +38,14 @@ return [
             'report' => false,
         ],
 
+        // Job logs (config jogger.log_disk). Must be a local disk: chunks are appended in place.
+        'logs' => [
+            'driver' => 'local',
+            'root' => env('JOGGER_LOG_PATH', storage_path('app/logs')),
+            'throw' => true,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

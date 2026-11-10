@@ -6,15 +6,24 @@ namespace App\Domain\Jobs\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
-/** Bookkeeping for one job's log file (the log text itself lives on the `logs` disk, see Task 27). */
+/**
+ * Bookkeeping for one runner's log file (the text itself lives on the log disk). Keyed by runner; `job_id` is filled
+ * once the runner is known to have picked up a job.
+ *
+ * @property string $runner_id
+ * @property string|null $host_id
+ * @property string|null $job_id
+ * @property Carbon|null $last_chunk_at
+ */
 class JobLog extends Model
 {
     public $timestamps = false;
 
     public $incrementing = false;
 
-    protected $primaryKey = 'job_id';
+    protected $primaryKey = 'runner_id';
 
     protected $keyType = 'string';
 
@@ -26,6 +35,7 @@ class JobLog extends Model
         'truncated' => 'boolean',
         'last_seq' => 'integer',
         'finalized_at' => 'datetime',
+        'last_chunk_at' => 'datetime',
         'expires_at' => 'datetime',
     ];
 

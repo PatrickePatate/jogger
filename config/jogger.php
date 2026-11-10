@@ -49,7 +49,7 @@ return [
     /*
     | Filesystem disk holding job logs.
     */
-    'log_disk' => env('JOGGER_LOG_DISK', 'local'),
+    'log_disk' => env('JOGGER_LOG_DISK', 'logs'),
 
     /*
     | Experimental actions/cache-compatible service.

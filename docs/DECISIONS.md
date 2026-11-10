@@ -241,3 +241,16 @@ Running log of choices made while building, where reality differed from the plan
 - **Packaging**: `docker/agent/Dockerfile` (golang build → `distroless/static:nonroot`) gives an **8.5 MB** image that runs; `make build-all` produces linux amd64/arm64. The Dockerfile runs as `nonroot`, so the operator must give it Docker socket access (group add) — the compose/install docs in Task 57 must say so.
 - **CI**: added golangci-lint (v1.64, `agent/.golangci.yml`: errcheck ignored in tests and for `CloseNow`), the cross-compile step, and the existing alpine pull. Verified lint locally with the same version.
 - Tested for real against Docker: orphan removal (known and young runners untouched), prune, and a DinD runner + sidecar start/stop with the `docker:dind-rootless` image pulled locally. Not tested: a job actually running `docker build` through the sidecar, and the self-update path against a real supervisor.
+
+## Task 27 — Control plane: event and log ingestion
+
+- **`job_logs` is now keyed by `runner_id`** (new migration; `job_id` nullable + unique, `host_id`, `last_chunk_at` added). Logs arrive per container, often before the `in_progress` webhook says which job the runner took; `job_id` is filled lazily from `workflow_jobs.runner_id`. Chunks received before the job is known are stored but not broadcast.
+- **Until runners exist (Task 31) ownership is "first host to write owns the log"**; another host gets 404. Task 31 should check the runner's `host_id` instead.
+- **Gaps are accepted, not rejected** (deviation from the acceptance wording). The agent sends in order from one goroutine and *discards* a refused batch, so rejecting `seq > last+1` would lose the rest of the log. A jump writes `[jogger: N log batch(es) missing]`. `seq <= last_seq` and anything after finalize answers 200 `accepted:false`.
+- **Storage**: plain append to `live/<runner>.log` on the `logs` disk (new, `storage/app/logs`, `JOGGER_LOG_PATH`); `eof` gzips to `archive/Y/m/<runner>.log.gz` and sets `expires_at = now + log_retention_days`. The disk **must be local** (in-place append). `jogger.log_disk` default changed from `local` to `logs`.
+- **`jogger:flush-logs`** (every 5 min) closes logs silent for 15 min without `eof` (agent died) and deletes expired logs. No Redis buffering: appends are direct, so there is nothing else to flush.
+- **Masking**: `SecretMasker` replaces values (≥ 4 chars, each line of multi-line secrets, and their base64) with `***` before storage and broadcast. Values come from `SecretSource`, bound to `NoSecrets` until secrets exist. A secret split across two batches is not caught.
+- **Truncation** at `log_max_bytes_per_job`: cut on a UTF-8 boundary, marker line appended, `truncated=true`; later batches are acknowledged and discarded.
+- **Broadcast** `log.chunk` on `private-job.{id}` in slices of ≤ 2000 characters (Pusher message cap).
+- **The log text is read from the raw request body**: the global `TrimStrings` middleware strips the trailing newline otherwise.
+- **Events**: `POST /agent/v1/events` → `ApplyAgentEvent` → `RunnerEvents` contract, bound to a logging stub until Task 31. Unknown types return 202 `handled:false`.
