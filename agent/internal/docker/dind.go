@@ -24,11 +24,7 @@ func certsVolume(id string) string { return "jogger-certs-" + id }
 // Rootless dind still needs the container itself to be privileged (the daemon creates user namespaces and
 // mounts inside it), so this is the one place the agent grants it — to a sidecar that holds no secrets, shares
 // no network with other runners, and dies with the runner.
-func sidecarBody(s Spec, net string, labels map[string]string) map[string]any {
-	image := s.DindImage
-	if image == "" {
-		image = DefaultDindImage
-	}
+func sidecarBody(s Spec, image, net string, labels map[string]string) map[string]any {
 	host := map[string]any{
 		"NetworkMode": net,
 		"AutoRemove":  true,
@@ -44,7 +40,7 @@ func sidecarBody(s Spec, net string, labels map[string]string) map[string]any {
 		host["MemorySwap"] = s.MemoryMB << 20
 	}
 
-	return map[string]any{
+	body := map[string]any{
 		"Image":      image,
 		"Env":        []string{"DOCKER_TLS_CERTDIR=" + certsDir},
 		"Labels":     labels,
@@ -53,6 +49,24 @@ func sidecarBody(s Spec, net string, labels map[string]string) map[string]any {
 			net: map[string]any{"Aliases": []string{dindAlias}},
 		}},
 	}
+	if s.Name != "" {
+		body["Hostname"] = s.Name // the runner shares this namespace, so this is the name jobs see
+	}
+
+	return body
+}
+
+// dindImage is the sidecar image: the command's, else the host's (JOGGER_DIND_IMAGE), else the rootless default.
+// Hosts where rootless cannot work (for example an unprivileged LXC container, which has no spare sub-uids)
+// set the rootful "docker:dind".
+func (r *Runner) dindImage(s Spec) string {
+	for _, image := range []string{s.DindImage, r.DindImage} {
+		if image != "" {
+			return image
+		}
+	}
+
+	return DefaultDindImage
 }
 
 func sidecarLabels(s Spec, hostID string) map[string]string {
@@ -61,10 +75,7 @@ func sidecarLabels(s Spec, hostID string) map[string]string {
 
 // startDind creates the certificate volume and starts the sidecar on the runner's network.
 func (r *Runner) startDind(ctx context.Context, s Spec, net string) error {
-	image := s.DindImage
-	if image == "" {
-		image = DefaultDindImage
-	}
+	image := r.dindImage(s)
 	if err := r.Docker.EnsureImage(ctx, image, nil); err != nil {
 		return err
 	}
@@ -76,7 +87,7 @@ func (r *Runner) startDind(ctx context.Context, s Spec, net string) error {
 	var created struct {
 		ID string `json:"Id"`
 	}
-	if err := r.Docker.do(ctx, "POST", "/containers/create", url.Values{"name": {sidecarName(s.RunnerID)}}, sidecarBody(s, net, labels), &created); err != nil {
+	if err := r.Docker.do(ctx, "POST", "/containers/create", url.Values{"name": {sidecarName(s.RunnerID)}}, sidecarBody(s, image, net, labels), &created); err != nil {
 		return fmt.Errorf("creating dind sidecar: %w", err)
 	}
 	if err := r.Docker.do(ctx, "POST", "/containers/"+created.ID+"/start", nil, nil, nil); err != nil {

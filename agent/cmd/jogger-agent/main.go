@@ -75,7 +75,7 @@ func run() error {
 	updater.Fetch = update.FetchHTTP(client)
 
 	dispatcher := commands.NewDispatcher(commands.HTTPAPI{Client: client}, 15*time.Second, 4)
-	runner := &docker.Runner{Docker: docker.New(cfg.DockerSocket), HostID: cred.HostID}
+	runner := &docker.Runner{Docker: docker.New(cfg.DockerSocket), HostID: cred.HostID, DindImage: cfg.DindImage}
 	emitter := events.NewEmitter(func(ctx context.Context, e events.Event) error {
 		return client.Do(ctx, "POST", "/agent/v1/events", e, nil)
 	}, 256)

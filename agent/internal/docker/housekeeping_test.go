@@ -60,7 +60,7 @@ func TestPruneIsScopedAndSucceeds(t *testing.T) {
 
 func TestDindSidecarBodyIsolatesAndSecures(t *testing.T) {
 	s := Spec{RunnerID: "abc", Image: "runner", DockerMode: "dind", CPU: 2, MemoryMB: 1024}
-	body := sidecarBody(s, networkName("abc"), sidecarLabels(s, "h1"))
+	body := sidecarBody(s, DefaultDindImage, networkName("abc"), sidecarLabels(s, "h1"))
 
 	if body["Image"] != DefaultDindImage {
 		t.Errorf("image = %v", body["Image"])
@@ -109,7 +109,7 @@ func TestDindRunnerGetsPrivateTLSDaemon(t *testing.T) {
 
 	info := inspect(t, r, started.ContainerID)
 	env := fmt.Sprint(info["Config"].(map[string]any)["Env"])
-	for _, want := range []string{"DOCKER_HOST=tcp://docker:2376", "DOCKER_TLS_VERIFY=1", "DOCKER_CERT_PATH=/certs/client"} {
+	for _, want := range []string{"DOCKER_HOST=tcp://localhost:2376", "DOCKER_TLS_VERIFY=1", "DOCKER_CERT_PATH=/certs/client"} {
 		if !strings.Contains(env, want) {
 			t.Errorf("runner env lacks %s", want)
 		}

@@ -28,6 +28,7 @@ type Config struct {
 	Hostname          string        // name offered at enrollment (the token may preset one)
 	HeartbeatInterval time.Duration // how often capacity is reported
 	DockerSocket      string        // path of the Docker engine socket
+	DindImage         string        // sidecar image for docker_mode "dind"; empty means the rootless default
 	ConfigFile        string
 	AutoUpdate        bool // replace the binary when the server advertises a verified newer one
 }
@@ -73,6 +74,7 @@ func Load(args []string, env Env, readFile func(string) ([]byte, error), hostnam
 		DataDir:      pick(*dataDir, "JOGGER_DATA_DIR", "data_dir", DefaultDataDir),
 		Hostname:     pick(*name, "JOGGER_HOSTNAME", "name", ""),
 		DockerSocket: pick(*socket, "JOGGER_DOCKER_SOCKET", "docker_socket", "/var/run/docker.sock"),
+		DindImage:    pick("", "JOGGER_DIND_IMAGE", "dind_image", ""),
 		ConfigFile:   file,
 	}
 

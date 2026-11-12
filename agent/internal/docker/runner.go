@@ -73,6 +73,8 @@ func safeID(id string) bool {
 type Runner struct {
 	Docker *Client
 	HostID string
+	// DindImage overrides the default sidecar image on this host; empty keeps DefaultDindImage.
+	DindImage string
 }
 
 func containerName(id string) string { return "jogger-runner-" + id }
@@ -146,7 +148,10 @@ func (r *Runner) create(ctx context.Context, s Spec, net string, labels map[stri
 		env = append(env, "JIT_CONFIG="+s.JITConfig)
 	}
 	if s.DockerMode == "dind" {
-		env = append(env, "DOCKER_HOST=tcp://"+dindAlias+":2376", "DOCKER_TLS_VERIFY=1", "DOCKER_CERT_PATH="+certsDir+"/client")
+		env = append(env, "DOCKER_HOST=tcp://localhost:2376", "DOCKER_TLS_VERIFY=1", "DOCKER_CERT_PATH="+certsDir+"/client")
+		// Share the sidecar's network namespace: ports published by service containers (`services:` with
+		// `ports:`) are then on the job's own localhost, as on GitHub-hosted runners.
+		net = "container:" + sidecarName(s.RunnerID)
 	}
 
 	host := map[string]any{
@@ -176,7 +181,7 @@ func (r *Runner) create(ctx context.Context, s Spec, net string, labels map[stri
 	}
 
 	body := map[string]any{"Image": s.Image, "Env": env, "Labels": labels, "HostConfig": host}
-	if s.Name != "" {
+	if s.Name != "" && s.DockerMode != "dind" { // in dind mode the hostname belongs to the shared namespace's owner
 		body["Hostname"] = s.Name
 	}
 	if len(s.Command) > 0 {
