@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Encryption\Encrypter;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -109,5 +110,25 @@ class HardeningTest extends TestCase
             }
         }
         $this->assertSame(0, Artisan::call('list'));
+    }
+
+    public function test_forwarded_headers_are_trusted_only_from_private_proxies(): void
+    {
+        $handle = function (string $remote): Request {
+            $request = Request::create('/up', 'GET', server: [
+                'HTTP_X_FORWARDED_PROTO' => 'https', 'HTTP_X_FORWARDED_FOR' => '203.0.113.9', 'REMOTE_ADDR' => $remote,
+            ]);
+            $this->app->make(Kernel::class)->handle($request);
+
+            return $request;
+        };
+
+        $viaProxy = $handle('172.18.0.5');
+        $this->assertTrue($viaProxy->isSecure());
+        $this->assertSame('203.0.113.9', $viaProxy->ip());
+
+        $direct = $handle('198.51.100.7');
+        $this->assertFalse($direct->isSecure());
+        $this->assertSame('198.51.100.7', $direct->ip());
     }
 }

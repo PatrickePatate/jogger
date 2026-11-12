@@ -32,6 +32,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->prepend(RequestId::class);
         $middleware->append(SecurityHeaders::class);
+        // The app always sits behind a reverse proxy on a private (Docker) network. Trusting only private ranges keeps
+        // a client that reaches the port directly from spoofing its address or scheme.
+        $middleware->trustProxies(at: ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16', 'fc00::/7', '127.0.0.1', '::1']);
         $middleware->web(prepend: [EnsureSetupComplete::class]);
         // Token auth must run before the rate limiter so limits are per token, not per IP.
         $middleware->prependToPriorityList(before: ThrottleRequests::class, prepend: AuthenticateApiToken::class);
