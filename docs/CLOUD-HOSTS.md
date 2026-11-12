@@ -15,7 +15,7 @@ A pool can be backed by a cloud template. When jobs wait and no host has a free 
 
 - **Jobs per server** is a template setting (`max_runners_per_host`). 1 means one server per job, which is the strongest isolation.
 - **Warm servers** is a template setting (`warm_hosts`, default 0). 0 is scale-from-zero: no server exists while nothing is queued.
-- **Providers**: Hetzner Cloud first. Others are added after the owner validates the shortlist below.
+- **Providers**: Hetzner Cloud first, then Scaleway, DigitalOcean and AWS EC2, in that order. A generic OpenStack driver is planned after those (it covers OVHcloud Public Cloud and other OpenStack clouds).
 
 ## Data model
 
@@ -59,21 +59,30 @@ A fresh server must install Docker and pull the runner image (1.3 GB): several m
 - Hosts page: "ephemeral" badge, template, age, state. Insights: host-hours and estimated cost per template.
 - API: read-only `cloud-hosts` listing in v1; management stays in the UI at first.
 
-## Provider shortlist (to validate)
+## Providers
 
-Billing granularity matters: with hourly billing a 3-minute job costs a full hour unless the server is reused.
+Billing granularity matters: with hourly billing a 3-minute job costs a full hour unless the server is reused. Prices and billing rules below are from memory and must be re-checked against each provider's documentation when its driver is written.
 
-| Provider | Why | Billing | Integration effort |
+| Order | Provider | Billing | Notes for the driver |
 |---|---|---|---|
-| Hetzner Cloud | Decided. Cheap, EU, simple token API, snapshots, cloud-init | by the started hour | low |
-| Scaleway | EU (France), token API, cloud-init, snapshots | hourly — to confirm | low |
-| DigitalOcean | Simplest API of all, wide use | per second (since 2026) — to confirm | low |
-| AWS EC2 | Most common overall; spot instances | per second | high (IAM, VPC, AMI per region) |
-| OVHcloud Public Cloud | EU, common in France | hourly | medium–high (OpenStack API; one driver would also cover other OpenStack clouds) |
-| Google Cloud, Azure | Common in companies | per second | high |
-| Vultr, Linode (Akamai), UpCloud | Similar to Hetzner | hourly | low each, lower demand |
+| 1 | Hetzner Cloud | by the started hour | Token API; labels; snapshots; cloud-init user data |
+| 2 | Scaleway | hourly — to confirm | Token (secret key) + project id; zones; tags instead of labels; cloud-init through user data |
+| 3 | DigitalOcean | per second — to confirm | Token API; tags; snapshots; user data. The simplest of the four |
+| 4 | AWS EC2 | per second | Access key + region; tags; AMI per region; needs a subnet and security group, so the template has more fields. Optional spot instances with on-demand fallback |
+| 5 | OpenStack (generic) | depends on the cloud | See below |
 
-Suggested order after Hetzner: Scaleway, DigitalOcean, AWS EC2; OVHcloud through a generic OpenStack driver if wanted. Prices and billing rules must be re-checked against each provider's documentation when its driver is written.
+Not planned: Google Cloud, Azure, Vultr, Linode, UpCloud. The interface allows adding them later.
+
+### OpenStack driver
+
+One driver for any OpenStack cloud, OVHcloud Public Cloud first.
+
+- **Credentials**: Keystone v3 auth URL, region, project id, and either an application credential (id + secret, preferred: scoped and revocable) or user name, password and domain.
+- **Service discovery**: endpoints for compute (Nova), image (Glance) and network (Neutron) are read from the Keystone token's catalog; nothing is hard-coded per cloud.
+- **Template fields**: flavor, image (or snapshot) id, network id(s), security group, optional key pair, availability zone.
+- **Operations**: create server with `user_data` (cloud-init) and `metadata` (`managed-by`, instance id); delete; get; list filtered by metadata for reconciliation.
+- **Differences to handle**: tokens expire and must be renewed; quotas return a specific error that the scaler reports as "quota reached"; some clouds need a floating IP for IPv4 while OVHcloud's public network gives one directly, so floating IP allocation is an optional template setting; billing rules are per cloud, so the template carries its own "billed by the hour" flag.
+- **Tests**: HTTP-faked Keystone and Nova responses; a real run against an OVHcloud project before calling it supported.
 
 ## Work breakdown
 
@@ -86,4 +95,7 @@ Suggested order after Hetzner: Scaleway, DigitalOcean, AWS EC2; OVHcloud through
 | C5 | UI, API listing, audit, alerts, insights | 6 h |
 | C6 | Snapshot build command, cloud-init script, metadata block | 3 h |
 | C7 | Documentation and a real run against a Hetzner project | 3 h |
-| C8+ | One step per additional validated provider | 3–8 h each |
+| C8 | Scaleway driver | 3 h |
+| C9 | DigitalOcean driver | 3 h |
+| C10 | AWS EC2 driver (template fields for subnet and security group, optional spot) | 8 h |
+| C11 | OpenStack driver, verified on OVHcloud | 8 h |

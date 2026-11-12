@@ -19,7 +19,7 @@
 | 61 | Done out of order, before 58–60. Left for later: screenshots in `docs/img/`, and a walkthrough of INSTALL + GITHUB-APP by a new user |
 | 62 | Checklist and traceability written ([RELEASE-CHECKLIST.md](RELEASE-CHECKLIST.md)); every box is still open: soak test, real GitHub run, release dry run |
 
-**Planned after 1.0:** cloud hosts (servers created and deleted on demand at Hetzner and other providers). Plan and steps C1–C8 are in [CLOUD-HOSTS.md](CLOUD-HOSTS.md); nothing is implemented.
+**Planned after 1.0:** cloud hosts (servers created and deleted on demand at Hetzner and other providers). Plan and steps C1–C11 are in [CLOUD-HOSTS.md](CLOUD-HOSTS.md); nothing is implemented.
 
 ## Summary
 
