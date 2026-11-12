@@ -5,7 +5,7 @@
 
 **Conventions for every task:** run `vendor/bin/pint` and `vendor/bin/phpunit` (PHP) or `gofmt`/`go test ./...` (agent) before finishing; new PHP files use `declare(strict_types=1)`; no task edits a module owned by a later task except where listed; tests ship with the feature.
 
-## Status (2026-11-10)
+## Status (2026-11-12)
 
 | Tasks | State |
 |-------|-------|
@@ -13,11 +13,11 @@
 | 40 | **To do**: the real end-to-end run against GitHub. Procedure and script exist ([E2E.md](E2E.md)); the run itself needs a real GitHub App, repository and public URL |
 | 54 | **To do**: cache protocol spike, not performed ([spikes/cache-protocol.md](spikes/cache-protocol.md)) |
 | 55 | Deferred to v1.1 (depends on 54) |
-| 58 | **To do**: browser tests. Also the place to check the Content-Security-Policy, the log terminal and live updates in a real browser |
-| 59 | **To do**: accessibility pass |
+| 58 | Done: browser tests pass locally, benchmark recorded in [PERFORMANCE.md](PERFORMANCE.md). The CI `browser` job has not run yet |
+| 59 | Partly done: axe clean on seven pages, 360 px and skip link tested. Not verified: keyboard reach of every control, screen readers ([A11Y.md](A11Y.md)) |
 | 60 | Done, but the workflow has never run: a pre-release dry run is still needed |
 | 61 | Done out of order, before 58–60. Left for later: screenshots in `docs/img/`, and a walkthrough of INSTALL + GITHUB-APP by a new user |
-| 62 | **To do**: release checklist and final verification |
+| 62 | Checklist and traceability written ([RELEASE-CHECKLIST.md](RELEASE-CHECKLIST.md)); every box is still open: soak test, real GitHub run, release dry run |
 
 ## Summary
 

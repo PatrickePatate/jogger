@@ -497,3 +497,9 @@ Running log of choices made while building, where reality differed from the plan
 - No test namespace: a pre-release is the dry run and does not move `:latest`.
 - **Not verified**: the dry run on a pre-release has not been done. Locally checked only: `make build-all VERSION=x` and `--version` printing it.
 - CI fixes in the same session: `golangci-lint` is now built with the job's Go (the v1.64 binary refuses Go 1.25); `TwoFactorLoginTest` flaked when the clock crossed a 30-second TOTP window between setup and login.
+
+## Tasks 58, 59, 62 (2026-11-12)
+- 58: Laravel Dusk with its own database `jogger_dusk`, `tests/Browser/run.sh` starts the app and Reverb; locally it uses Playwright's Chromium through `DUSK_CHROME_BINARY`. No CSP violation seen. Benchmark `tests/Perf/seed-benchmark.php` runs in-process against `jogger_perf` (webhook p95 ≈ 13 ms, Jobs index p95 ≈ 150 ms with 50 000 jobs).
+- 59: axe-core injected from `node_modules`; fixes in the dropdown, header, hosts and pools views and two colour tokens. Left open: keyboard walkthrough, screen readers, pages outside the scanned seven.
+- 62: only the checklist and traceability table were produced (60 criteria: 44 automated, 12 manual, 4 gaps). No soak test, no real GitHub run, no release dry run; v1.0.0 is not tagged. Gap found: the server side of the agent upgrade announcement (SPEC §3.4.2) has no route.
+- **Not verified**: the CI `browser` job and the CI fixes have not run on GitHub.
