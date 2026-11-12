@@ -28,8 +28,17 @@ final class EnrollController extends Controller
 
         [$host, $credential] = $enroll($data['token'], $data['hostname'], $data['facts'] ?? []);
 
-        /** @var array<string, mixed> $reverb */
-        $reverb = config('broadcasting.connections.reverb.options');
+        // Agents are outside the server's network: give them the address browsers use (the public one, or the
+        // app's own URL when the proxy serves websockets on it), never the internal broadcasting host.
+        /** @var array<string, mixed> $public */
+        $public = array_filter((array) config('jogger.reverb_public'));
+        $app = parse_url((string) config('app.url')) ?: [];
+        $scheme = (string) ($public['scheme'] ?? $app['scheme'] ?? 'https');
+        $reverb = [
+            'host' => (string) ($public['host'] ?? $app['host'] ?? 'localhost'),
+            'port' => (int) ($public['port'] ?? $app['port'] ?? ($scheme === 'https' ? 443 : 80)),
+            'scheme' => $scheme,
+        ];
 
         return response()->json([
             'host_id' => $host->id,
@@ -37,7 +46,7 @@ final class EnrollController extends Controller
             'credential' => $credential,
             'reverb' => [
                 'host' => $reverb['host'],
-                'port' => (int) $reverb['port'],
+                'port' => $reverb['port'],
                 'scheme' => $reverb['scheme'],
                 'key' => config('broadcasting.connections.reverb.key'),
             ],

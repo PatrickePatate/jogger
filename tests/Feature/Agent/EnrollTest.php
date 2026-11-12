@@ -63,6 +63,18 @@ class EnrollTest extends TestCase
         $this->assertArrayNotHasKey('credential_hash', $host->toArray());
     }
 
+    public function test_agents_get_the_public_websocket_address_not_the_internal_one(): void
+    {
+        config(['broadcasting.connections.reverb.options.host' => 'reverb', 'app.url' => 'https://ci.example.com']);
+        [$plain] = $this->token();
+        $this->enroll($plain)->assertJsonPath('reverb.host', 'ci.example.com')
+            ->assertJsonPath('reverb.port', 443)->assertJsonPath('reverb.scheme', 'https');
+
+        config(['jogger.reverb_public' => ['host' => 'ws.example.com', 'port' => '8443', 'scheme' => 'https']]);
+        [$plain] = $this->token();
+        $this->enroll($plain)->assertJsonPath('reverb.host', 'ws.example.com')->assertJsonPath('reverb.port', 8443);
+    }
+
     public function test_a_token_can_only_be_used_once(): void
     {
         [$plain] = $this->token();
