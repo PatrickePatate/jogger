@@ -18,7 +18,7 @@
     --color-text: #14171c;
     --color-text-secondary: #5b6270;
 
-    --color-success: #0f7a57;
+    --color-success: #0b6848; /* 4.5:1 or better as text on its own 10% tint, on both surface and bg */
     --color-error: #b42318;
     --color-warning: #92400e;
     --color-info: #1d4ed8;
@@ -29,7 +29,7 @@
     --color-danger-ink: #c81e1e;
 
     --color-muted: #f1f2f4; /* secondary buttons, hover fills */
-    --color-ring: #9aa3b2; /* focus ring */
+    --color-ring: #6b7482; /* focus ring: 3:1 or better against surface and bg */
 
     --radius-card: 16px;
     --radius-control: 10px;
@@ -52,7 +52,7 @@
     --color-info: #7aa2ff;
     --color-danger-ink: #f87171;
     --color-muted: #222833;
-    --color-ring: #6b7482;
+    --color-ring: #9aa3b2;
 }
 
 @layer base {

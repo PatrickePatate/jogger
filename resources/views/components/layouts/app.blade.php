@@ -56,8 +56,8 @@
                 <div class="min-w-0 flex-1 truncate font-semibold">{{ $title ?? '' }}</div>
                 @isset($actions){{ $actions }}@endisset
                 @auth
-                    <button type="button" x-on:click="$dispatch('open-command-palette')" class="hidden items-center gap-2 rounded-control border border-border px-2.5 py-1 text-[0.8125rem] text-text-secondary hover:bg-ink/5 sm:flex" aria-label="Open command palette">
-                        Search <kbd class="font-sans">⌘K</kbd>
+                    <button type="button" x-on:click="$dispatch('open-command-palette')" class="hidden items-center gap-2 rounded-control border border-border px-2.5 py-1 text-[0.8125rem] text-text-secondary hover:bg-ink/5 sm:flex">
+                        Search <span class="sr-only">(open command palette)</span> <kbd class="font-sans">⌘K</kbd>
                     </button>
                     @can('admin')
                         <livewire:shared.notification-bell />
@@ -65,7 +65,8 @@
                     <x-ui.dropdown>
                         <x-slot:trigger>
                             <button type="button" class="flex items-center gap-2 rounded-control px-2 py-1 hover:bg-ink/5">
-                                <span class="grid size-7 place-items-center rounded-full bg-ink text-xs font-semibold text-surface">{{ Str::upper(Str::substr(auth()->user()->name, 0, 1)) }}</span>
+                                <span class="sr-only">Account menu</span>
+                                <span aria-hidden="true" class="grid size-7 place-items-center rounded-full bg-ink text-xs font-semibold text-surface">{{ Str::upper(Str::substr(auth()->user()->name, 0, 1)) }}</span>
                                 <x-icon name="chevron-down" :size="14" />
                             </button>
                         </x-slot:trigger>
@@ -83,7 +84,7 @@
                 @endauth
             </header>
 
-            <main id="main" class="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-8">{{ $slot }}</main>
+            <main id="main" tabindex="-1" class="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-8">{{ $slot }}</main>
         </div>
     </div>
 

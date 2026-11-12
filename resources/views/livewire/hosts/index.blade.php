@@ -31,11 +31,14 @@
 
                     <dl class="mt-4 space-y-3 text-[0.8125rem]">
                         @foreach ([['CPU', $cpuPct, $host->cpu_total !== null ? number_format((float) ($host->cpu_used ?? 0), 1).' / '.(float) $host->cpu_total.' cores' : 'no data'], ['Memory', $memPct, $host->memory_total_mb !== null ? round(($host->memory_used_mb ?? 0) / 1024, 1).' / '.round($host->memory_total_mb / 1024, 1).' GB' : 'no data']] as [$label, $pct, $text])
-                            <div>
-                                <div class="flex justify-between"><dt class="text-text-secondary">{{ $label }}</dt><dd class="tabular">{{ $text }}</dd></div>
-                                <div class="mt-1 h-1.5 overflow-hidden rounded-full bg-border" role="img" aria-label="{{ $label }} {{ $pct ?? 0 }}% used">
-                                    <div @class(['h-full rounded-full', 'bg-success' => ($pct ?? 0) < 70, 'bg-warning' => ($pct ?? 0) >= 70 && ($pct ?? 0) < 90, 'bg-error' => ($pct ?? 0) >= 90]) style="width: {{ $pct ?? 0 }}%"></div>
-                                </div>
+                            {{-- A dl group may only hold dt/dd, so the meter lives in a second dd. --}}
+                            <div class="flex flex-wrap justify-between">
+                                <dt class="text-text-secondary">{{ $label }}</dt><dd class="tabular">{{ $text }}</dd>
+                                <dd class="mt-1 w-full">
+                                    <div class="h-1.5 overflow-hidden rounded-full bg-border" role="img" aria-label="{{ $label }} {{ $pct ?? 0 }}% used">
+                                        <div @class(['h-full rounded-full', 'bg-success' => ($pct ?? 0) < 70, 'bg-warning' => ($pct ?? 0) >= 70 && ($pct ?? 0) < 90, 'bg-error' => ($pct ?? 0) >= 90]) style="width: {{ $pct ?? 0 }}%"></div>
+                                    </div>
+                                </dd>
                             </div>
                         @endforeach
                         <div class="flex justify-between"><dt class="text-text-secondary">Disk free</dt><dd class="tabular">{{ $host->disk_free_gb !== null ? $host->disk_free_gb.' GB' : 'no data' }}</dd></div>

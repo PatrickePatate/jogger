@@ -34,7 +34,7 @@
             @if ($canCreate)<x-ui.button icon="plus" href="{{ route('pools.create') }}" wire:navigate>New pool</x-ui.button>@endif
         </x-ui.empty-state>
     @else
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             @foreach ($pools as $pool)
                 <x-ui.card wire:key="pool-{{ $pool->id }}">
                     <div class="flex items-start justify-between gap-3">
