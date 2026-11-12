@@ -37,6 +37,7 @@
             @endforeach
         </x-ui.select>
     </div>
+    <x-ui.toggle label="Also show jobs that run on GitHub's own runners" name="hosted" wire:model.live="hosted" />
 
     <div wire:loading.delay.class="opacity-60" class="transition-opacity">
         @if ($jobs->isEmpty())
@@ -65,6 +66,7 @@
                         <td data-label="Job">
                             <a href="{{ route('jobs.show', $job) }}" wire:navigate class="font-medium hover:underline">{{ $job->job_name }}</a>
                             <p class="text-[0.8125rem] text-text-secondary">{{ $job->workflow_name ?? 'workflow' }}</p>
+                            @if ($job->runner_id === null && ! \App\Domain\Pools\Actions\MatchPool::wantsSelfHosted($job->labels))<p class="text-[0.8125rem] text-text-secondary">Runs on GitHub, not on Jogger</p>@endif
                             @if ($unmatched)<p class="text-[0.8125rem] text-warning" title="{{ $job->unmatched_reason }}">{{ \Illuminate\Support\Str::after($job->unmatched_reason, ': ') }}</p>@endif
                         </td>
                         <td data-label="Repository" class="text-text-secondary">{{ $job->repository->full_name }}</td>

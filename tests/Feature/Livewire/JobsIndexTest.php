@@ -134,4 +134,17 @@ class JobsIndexTest extends TestCase
 
         $this->assertLessThan(500, $elapsed, "first page took {$elapsed} ms");
     }
+
+    public function test_jobs_on_github_hosted_runners_are_hidden_unless_asked_for(): void
+    {
+        $repository = Repository::factory()->create(['installation_id' => Installation::factory()->create()->id]);
+        WorkflowJob::factory()->create(['repository_id' => $repository->id, 'job_name' => 'ours-job']);
+        WorkflowJob::factory()->create(['repository_id' => $repository->id, 'job_name' => 'hosted-job', 'labels' => ['ubuntu-latest']]);
+        $admin = User::factory()->admin()->create();
+
+        Livewire::actingAs($admin)->test(Index::class)
+            ->assertSee('ours-job')->assertDontSee('hosted-job')
+            ->set('hosted', true)
+            ->assertSee('hosted-job')->assertSee('Runs on GitHub, not on Jogger');
+    }
 }

@@ -51,6 +51,10 @@ final class Index extends Component
     #[Url(except: '')]
     public string $range = '';
 
+    /** Jobs of connected repositories that run on GitHub's own runners are mirrored too; hidden unless asked for. */
+    #[Url(except: false)]
+    public bool $hosted = false;
+
     /**
      * The global `jobs` channel is for administrators; everyone else follows by polling (see the view).
      *
@@ -68,14 +72,14 @@ final class Index extends Component
 
     public function updated(string $property): void
     {
-        if (in_array($property, ['repository', 'workflow', 'status', 'pool', 'host', 'range'], true)) {
+        if (in_array($property, ['repository', 'workflow', 'status', 'pool', 'host', 'range', 'hosted'], true)) {
             $this->resetPage();
         }
     }
 
     public function clearFilters(): void
     {
-        $this->reset('repository', 'workflow', 'status', 'pool', 'host', 'range');
+        $this->reset('repository', 'workflow', 'status', 'pool', 'host', 'range', 'hosted');
         $this->resetPage();
     }
 
@@ -102,6 +106,9 @@ final class Index extends Component
 
         if ($this->repository !== '') {
             $query->where('repository_id', $this->repository);
+        }
+        if (! $this->hosted) {
+            $query->onJogger();
         }
         if ($this->workflow !== '') {
             $query->where('workflow_name', 'ilike', '%'.addcslashes($this->workflow, '%_\\').'%');

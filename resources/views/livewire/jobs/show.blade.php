@@ -17,6 +17,11 @@
         <div class="min-w-0 space-y-5">
             <x-ui.stepper title="Progress" :steps="$steps" />
 
+            @if ($job->runner_id === null && ! \App\Domain\Pools\Actions\MatchPool::wantsSelfHosted($job->labels))
+                <x-ui.card title="Log">
+                    <p class="text-text-secondary">This job runs on GitHub's own runners (<span class="font-mono text-[0.8125rem]">{{ implode(', ', $job->labels) ?: 'no labels' }}</span>), not on a Jogger runner, so there is no log, pool or runner for it here. Use <span class="font-mono text-[0.8125rem]">runs-on: [self-hosted, …]</span> with a pool's labels to run it on Jogger.</p>
+                </x-ui.card>
+            @else
             <x-ui.card title="Log" :padded="false" wire:ignore>
                 <x-slot:actions>
                     <x-ui.button variant="outline" size="xs" href="{{ route('jobs.log.download', $job) }}">Download</x-ui.button>
@@ -34,6 +39,7 @@
                     <div x-ref="terminal" class="h-[32rem] bg-[#0f172a] p-2" role="log" aria-label="Job log"></div>
                 </div>
             </x-ui.card>
+            @endif
         </div>
 
         <x-ui.card title="Details">

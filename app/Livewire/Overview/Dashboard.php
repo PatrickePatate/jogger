@@ -69,7 +69,7 @@ final class Dashboard extends Component
      */
     private function stats(User $user): array
     {
-        $jobs = WorkflowJob::query()->visibleTo($user)->toBase()
+        $jobs = WorkflowJob::query()->visibleTo($user)->onJogger()->toBase()
             ->selectRaw('count(*) filter (where status in (?, ?)) as queued', [JobStatus::Queued->value, JobStatus::Waiting->value])
             ->selectRaw('count(*) filter (where status = ?) as running', [JobStatus::InProgress->value])
             ->selectRaw('count(*) filter (where completed_at >= ? and conclusion = ?) as succeeded', [now()->subDay(), JobConclusion::Success->value])
@@ -106,7 +106,7 @@ final class Dashboard extends Component
                 ])->all()
             : [];
 
-        $failures = WorkflowJob::query()->visibleTo($user)->with('repository:id,full_name')
+        $failures = WorkflowJob::query()->visibleTo($user)->onJogger()->with('repository:id,full_name')
             ->where('status', JobStatus::Completed->value)
             ->whereIn('conclusion', [JobConclusion::Failure->value, JobConclusion::TimedOut->value])
             ->orderByDesc('completed_at')->limit(5)->get()

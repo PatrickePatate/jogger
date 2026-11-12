@@ -69,6 +69,19 @@ class WorkflowJob extends Model
     }
 
     /**
+     * Jobs that are Jogger's business: they asked for a self-hosted runner or ran on one of ours. Connected
+     * repositories also send events for jobs on GitHub's own runners; those are mirrored but use no pool or runner.
+     *
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopeOnJogger(Builder $query): Builder
+    {
+        return $query->where(fn (Builder $q) => $q->whereNotNull('runner_id')
+            ->orWhereRaw("EXISTS (SELECT 1 FROM unnest(labels) l WHERE lower(l) = 'self-hosted')"));
+    }
+
+    /**
      * Jobs of repositories whose installation the user may see (team grants), or everything for global admins.
      *
      * @param  Builder<WorkflowJob>  $query
