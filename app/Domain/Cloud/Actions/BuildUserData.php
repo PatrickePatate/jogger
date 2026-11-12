@@ -17,6 +17,8 @@ use InvalidArgumentException;
  */
 final class BuildUserData
 {
+    public const DEFAULT_DIND_IMAGE = 'docker:dind';
+
     private const SAFE_PATTERN = '/^[A-Za-z0-9_.-]+$/D';
 
     private const ENV_FILE = '/etc/jogger/agent.env';
@@ -37,7 +39,10 @@ final class BuildUserData
             'JOGGER_HOSTNAME='.$hostName,
         ];
 
-        $dind = $template->options['dind_image'] ?? null;
+        // Not the agent's rootless default: Ubuntu restricts unprivileged user namespaces, the rootless sidecar dies
+        // at start, and the runner, which shares its network, loses its connection to GitHub (seen on the first
+        // real server). A cloud server is a disposable machine for this purpose, so the regular image is fine.
+        $dind = $template->options['dind_image'] ?? self::DEFAULT_DIND_IMAGE;
         if (is_string($dind) && $dind !== '') {
             $this->assertOneLine('dind_image', $dind);
             $env[] = 'JOGGER_DIND_IMAGE='.$dind;

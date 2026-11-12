@@ -74,15 +74,15 @@ class BuildUserDataTest extends TestCase
         $this->assertSame('0600', $file['permissions']);
         $this->assertSame('root:root', $file['owner']);
         $this->assertSame(
-            "JOGGER_SERVER=https://ci.example.com\nJOGGER_ENROLL_TOKEN=".self::TOKEN."\nJOGGER_HOSTNAME=".self::HOST."\n",
+            "JOGGER_SERVER=https://ci.example.com\nJOGGER_ENROLL_TOKEN=".self::TOKEN."\nJOGGER_HOSTNAME=".self::HOST."\nJOGGER_DIND_IMAGE=docker:dind\n",
             $file['content'],
         );
     }
 
-    public function test_dind_image_is_written_only_when_configured(): void
+    public function test_dind_image_defaults_to_the_regular_image_and_can_be_overridden(): void
     {
         $without = $this->file($this->parsed(), '/etc/jogger/agent.env')['content'];
-        $this->assertStringNotContainsString('JOGGER_DIND_IMAGE', $without);
+        $this->assertStringContainsString("JOGGER_DIND_IMAGE=docker:dind\n", $without);
 
         $with = $this->file($this->parsed(['dind_image' => 'docker:27-dind-rootless']), '/etc/jogger/agent.env')['content'];
         $this->assertStringContainsString("JOGGER_DIND_IMAGE=docker:27-dind-rootless\n", $with);
