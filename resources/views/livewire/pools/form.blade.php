@@ -95,6 +95,12 @@
                 <x-ui.input label="Kept warm" name="min_idle" type="number" min="0" wire:model.blur="min_idle" hint="Idle runners ready before a job arrives." :error="$errors->first('min_idle')" />
                 <x-ui.input label="Idle timeout (seconds)" name="idle_ttl_seconds" type="number" min="60" wire:model.blur="idle_ttl_seconds" :error="$errors->first('idle_ttl_seconds')" />
             </div>
+            @if ($poolId && ($cloudTemplates->isNotEmpty() || auth()->user()->isAdmin()))
+                <p class="mt-4 text-[0.8125rem] text-text-secondary" data-testid="pool-cloud-templates">
+                    Cloud templates: {{ $cloudTemplates->isEmpty() ? 'none' : $cloudTemplates->implode(', ') }}
+                    @can('admin')· <a href="{{ route('admin.cloud') }}" wire:navigate class="font-medium text-text underline">Manage cloud hosts</a>@endcan
+                </p>
+            @endif
         </x-ui.card>
 
         <div class="flex justify-end gap-2">

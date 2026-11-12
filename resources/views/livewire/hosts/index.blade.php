@@ -1,3 +1,4 @@
+@php use App\Domain\Cloud\Enums\CloudHostState; @endphp
 <div class="space-y-5" wire:poll.15s>
     <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
@@ -28,6 +29,17 @@
                         </div>
                         <x-host-status-pill :status="$host->status->value" />
                     </div>
+
+                    @if ($host->ephemeral || $host->cloud_state)
+                        <div class="mt-3 flex flex-wrap items-center gap-2 text-[0.8125rem]">
+                            @if ($host->ephemeral)<x-ui.badge tone="info" icon="clock">Ephemeral</x-ui.badge>@endif
+                            @if ($host->template)<span class="text-text-secondary">Template <span class="font-medium text-text">{{ $host->template->name }}</span></span>@endif
+                            @if ($host->cloud_state)
+                                @php $cloudTone = match ($host->cloud_state) { CloudHostState::Online => 'success', CloudHostState::Failed => 'error', CloudHostState::Draining, CloudHostState::Deleting => 'warning', default => 'neutral' }; @endphp
+                                <span class="text-text-secondary">Cloud state</span> <x-ui.badge :tone="$cloudTone">{{ $host->cloud_state->label() }}</x-ui.badge>
+                            @endif
+                        </div>
+                    @endif
 
                     <dl class="mt-4 space-y-3 text-[0.8125rem]">
                         @foreach ([['CPU', $cpuPct, $host->cpu_total !== null ? number_format((float) ($host->cpu_used ?? 0), 1).' / '.(float) $host->cpu_total.' cores' : 'no data'], ['Memory', $memPct, $host->memory_total_mb !== null ? round(($host->memory_used_mb ?? 0) / 1024, 1).' / '.round($host->memory_total_mb / 1024, 1).' GB' : 'no data']] as [$label, $pct, $text])

@@ -23,6 +23,7 @@ use App\Livewire\Pools\Form as PoolForm;
 use App\Livewire\Pools\Index as PoolsIndex;
 use App\Livewire\Runners\Index as RunnersIndex;
 use App\Livewire\Secrets\Index as SecretsIndex;
+use App\Livewire\Settings\CloudProviders;
 use App\Livewire\Settings\General;
 use App\Livewire\Settings\Notifications as NotificationSettings;
 use App\Livewire\Settings\Security;
@@ -69,6 +70,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/users', Users::class)->name('admin.users');
         Route::get('/teams', Teams::class)->name('admin.teams');
         Route::get('/settings', General::class)->name('admin.settings');
+        Route::get('/cloud', CloudProviders::class)->name('admin.cloud');
         Route::get('/audit', AuditLog::class)->name('admin.audit');
         Route::get('/notifications', NotificationSettings::class)->name('settings.notifications');
     });

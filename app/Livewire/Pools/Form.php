@@ -174,6 +174,7 @@ final class Form extends Component
             'images' => $this->poolId === null ? collect() : HostImage::query()->with('host')
                 ->where('image', $this->record()?->image)->get()->filter(fn (HostImage $i) => $i->host !== null)->sortBy('host.name')->values(),
             'publicWarning' => $this->targetsPublicRepository() ? PoolRules::publicWarning($this->scope_target) : null,
+            'cloudTemplates' => $this->record()?->templates()->orderBy('name')->pluck('name') ?? collect(),
         ])->title($this->poolId ? 'Edit pool' : 'New pool');
     }
 

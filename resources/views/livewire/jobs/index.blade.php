@@ -67,7 +67,9 @@
                             <a href="{{ route('jobs.show', $job) }}" wire:navigate class="font-medium hover:underline">{{ $job->job_name }}</a>
                             <p class="text-[0.8125rem] text-text-secondary">{{ $job->workflow_name ?? 'workflow' }}</p>
                             @if ($job->runner_id === null && ! \App\Domain\Pools\Actions\MatchPool::wantsSelfHosted($job->labels))<p class="text-[0.8125rem] text-text-secondary">Runs on GitHub, not on Jogger</p>@endif
-                            @if ($unmatched)<p class="text-[0.8125rem] text-warning" title="{{ $job->unmatched_reason }}">{{ \Illuminate\Support\Str::after($job->unmatched_reason, ': ') }}</p>@endif
+                            @php $waitingForCloud = $job->status->value === 'queued' && $job->runner_id === null && $job->pool_id !== null && isset($cloudPools[$job->pool_id]); @endphp
+                            @if ($unmatched)<p class="text-[0.8125rem] text-warning" title="{{ $job->unmatched_reason }}">{{ \Illuminate\Support\Str::after($job->unmatched_reason, ': ') }}</p>
+                            @elseif ($waitingForCloud)<p class="text-[0.8125rem] text-text-secondary">Waiting for a cloud server</p>@endif
                         </td>
                         <td data-label="Repository" class="text-text-secondary">{{ $job->repository->full_name }}</td>
                         <td data-label="Branch" class="max-w-40 truncate font-mono text-[0.8125rem] text-text-secondary">{{ $job->head_branch ?? '—' }}</td>

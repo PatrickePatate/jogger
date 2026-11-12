@@ -69,7 +69,7 @@ final class Index extends Component
     {
         return view('livewire.hosts.index', [
             // Revoked hosts are history, not infrastructure.
-            'hosts' => Host::query()->where('status', '!=', HostStatus::Revoked->value)->orderBy('name')->get(),
+            'hosts' => Host::query()->with('template:id,name')->where('status', '!=', HostStatus::Revoked->value)->orderBy('name')->get(),
             'counts' => $this->counts(),
             'runners' => $this->selected === null ? collect() : Runner::query()->where('host_id', $this->selected)
                 ->inState(...RunnerState::present())->with(['pool', 'job'])->orderByDesc('id')->limit(100)->get(),

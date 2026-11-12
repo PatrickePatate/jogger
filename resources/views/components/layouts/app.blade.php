@@ -15,6 +15,7 @@
         ['route' => 'admin.teams', 'label' => 'Teams', 'icon' => 'server', 'admin' => true],
         ['route' => 'admin.audit', 'label' => 'Audit log', 'icon' => 'list', 'admin' => true],
         ['route' => 'admin.settings', 'label' => 'Settings', 'icon' => 'cpu', 'admin' => true],
+        ['route' => 'admin.cloud', 'label' => 'Cloud hosts', 'icon' => 'server', 'admin' => true],
         ['route' => 'dev.ui', 'label' => 'UI kit', 'icon' => 'info', 'dev' => true],
     ])->filter(fn ($i) => Route::has($i['route'])
         && (! ($i['dev'] ?? false) || app()->isLocal())

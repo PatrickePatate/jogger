@@ -94,6 +94,8 @@ final class Index extends Component
             'hosts' => Host::query()->orderBy('name')->get(['id', 'name']),
             'filtered' => $this->repository.$this->workflow.$this->status.$this->pool.$this->host.$this->range !== '',
             'polls' => ! $user->isAdmin(),
+            // Pools that a cloud template may create servers for: one query per page, not one per job.
+            'cloudPools' => RunnerPool::query()->whereHas('templates', fn ($q) => $q->where('host_templates.status', 'active'))->pluck('id')->flip()->all(),
         ]);
     }
 
