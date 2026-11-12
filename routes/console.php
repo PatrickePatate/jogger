@@ -17,5 +17,6 @@ Schedule::command('jogger:reap-runners')->everyThirtySeconds()->withoutOverlappi
 Schedule::command('jogger:reconcile-pools')->everyFifteenSeconds()->withoutOverlapping();
 Schedule::command('jogger:reconcile')->everyMinute()->withoutOverlapping();
 Schedule::command('jogger:scale-cloud-hosts')->everyMinute()->withoutOverlapping();
+Schedule::command('jogger:reconcile-cloud-hosts')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('jogger:rollup-metrics')->everyMinute()->withoutOverlapping();
 Schedule::command('jogger:evaluate-alerts')->everyMinute()->withoutOverlapping();

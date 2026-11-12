@@ -23,6 +23,10 @@ final class FakeCloudDriver implements CloudDriver
 
     private ?CloudException $nextCreateFailure = null;
 
+    private ?CloudException $nextDeleteFailure = null;
+
+    private ?CloudException $nextListFailure = null;
+
     /**
      * Every spec passed to create(), in order.
      *
@@ -75,12 +79,26 @@ final class FakeCloudDriver implements CloudDriver
 
     public function delete(CloudProvider $provider, string $serverId): void
     {
+        if ($this->nextDeleteFailure !== null) {
+            $failure = $this->nextDeleteFailure;
+            $this->nextDeleteFailure = null;
+
+            throw $failure;
+        }
+
         unset($this->servers[$serverId]);
         $this->deleted[] = $serverId;
     }
 
     public function listManaged(CloudProvider $provider, string $instanceId): array
     {
+        if ($this->nextListFailure !== null) {
+            $failure = $this->nextListFailure;
+            $this->nextListFailure = null;
+
+            throw $failure;
+        }
+
         return array_values(array_filter(
             $this->servers,
             fn (CloudServer $server) => ($server->labels[self::MANAGED_BY_LABEL] ?? null) === 'jogger'
@@ -98,5 +116,17 @@ final class FakeCloudDriver implements CloudDriver
     public function failNextCreate(CloudException $e): void
     {
         $this->nextCreateFailure = $e;
+    }
+
+    /** The next delete() throws this and the server stays; later calls succeed again. */
+    public function failNextDelete(CloudException $e): void
+    {
+        $this->nextDeleteFailure = $e;
+    }
+
+    /** The next listManaged() throws this; later calls succeed again. */
+    public function failNextList(CloudException $e): void
+    {
+        $this->nextListFailure = $e;
     }
 }
