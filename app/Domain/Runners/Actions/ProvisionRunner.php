@@ -65,9 +65,11 @@ final class ProvisionRunner
                 'jit_config' => $jit->encodedJitConfig,
                 'cpu' => $pool->cpu_limit,
                 'memory_mb' => $pool->memory_limit_mb,
-                'env' => (object) $this->secrets->envFor($pool),
                 'labels' => $pool->labels,
                 'docker_mode' => $pool->docker_mode->value,
+                // Left out when empty: the payload is stored as JSON and an empty map would come back as a list,
+                // which the agent refuses.
+                ...(($env = $this->secrets->envFor($pool)) !== [] ? ['env' => $env] : []),
                 ...(($auth = $this->secrets->registryAuthFor($pool)) !== null ? ['registry_auth' => $auth] : []),
                 // One volume per pool on each host; the name never crosses pools, so neither does the cache.
                 ...($pool->persist_tool_cache ? ['tool_cache_volume' => self::toolCacheVolume($pool)] : []),

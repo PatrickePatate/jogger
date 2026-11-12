@@ -67,7 +67,7 @@ class ProvisionTest extends TestCase
         $this->assertSame($this->host->id, $command->host_id);
         $this->assertEquals([
             'runner_id' => $runner->id, 'name' => $runner->name, 'image' => 'ghcr.io/acme/runner:1', 'jit_config' => 'fake-jit-config-1000',
-            'cpu' => 2, 'memory_mb' => 4096, 'env' => [], 'labels' => ['self-hosted', 'linux', 'x64'], 'docker_mode' => 'none',
+            'cpu' => 2, 'memory_mb' => 4096, 'labels' => ['self-hosted', 'linux', 'x64'], 'docker_mode' => 'none',
         ], $command->payload);
     }
 
