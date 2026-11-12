@@ -235,6 +235,11 @@ final class CloudProviders extends Component
     {
         $this->authorizeAdmin();
         $template = $this->templateId === null ? null : HostTemplate::query()->findOrFail($this->templateId);
+        // The select shows its first option as chosen even when nothing was picked (for example a provider added
+        // after the page loaded), so an empty value means that first provider.
+        if ($this->cloud_provider_id === '') {
+            $this->cloud_provider_id = (string) CloudProvider::query()->orderBy('name')->value('id');
+        }
         $data = $this->validatedTemplate($template);
 
         // Moving a template to another account would orphan the servers it already created.

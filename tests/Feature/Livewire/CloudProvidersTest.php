@@ -119,6 +119,18 @@ class CloudProvidersTest extends TestCase
         $this->assertTrue(AuditLog::query()->where('action', 'cloud.provider_updated')->where('metadata->token_changed', false)->exists());
     }
 
+    public function test_a_provider_added_after_the_page_loaded_is_used_by_the_template_form(): void
+    {
+        $page = Livewire::actingAs($this->admin)->test(CloudProviders::class);
+        $provider = CloudProvider::factory()->create();
+
+        $page->set('name', 'cx22-fsn1')->set('server_type', 'cx22')->set('location', 'fsn1')->set('image', 'ubuntu-24.04')
+            ->call('saveTemplate')
+            ->assertHasNoErrors();
+
+        $this->assertSame($provider->id, HostTemplate::query()->sole()->cloud_provider_id);
+    }
+
     public function test_a_template_is_created_and_synced_with_its_pools(): void
     {
         $provider = CloudProvider::factory()->create();
