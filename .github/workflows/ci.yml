@@ -12,10 +12,12 @@ concurrency:
 permissions:
   contents: read
 
+# The php, assets and agent jobs run on this project's own Jogger instance. The browser job stays on a
+# GitHub-hosted runner: it needs Chrome, which the Jogger runner image does not ship.
 jobs:
   php:
     name: PHP ${{ matrix.php }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64] # Jogger pool "jogger-linux-x64"
     strategy:
       fail-fast: false
       matrix:
@@ -149,7 +151,7 @@ jobs:
 
   assets:
     name: Frontend build
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64] # Jogger pool "jogger-linux-x64"
     steps:
       - uses: actions/checkout@v4
 
@@ -164,7 +166,7 @@ jobs:
 
   agent:
     name: Agent (Go)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64] # Jogger pool "jogger-linux-x64"
     defaults:
       run:
         working-directory: agent
