@@ -1,4 +1,4 @@
-name: Release images
+name: Release
 
 on:
   release:
@@ -65,3 +65,42 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+  assets:
+    name: Agent binaries and install bundle
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: agent/go.mod
+          cache-dependency-path: agent/go.sum
+
+      - name: Build agent binaries
+        working-directory: agent
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          make build-all VERSION="${TAG#v}"
+          test "$(./bin/jogger-agent-linux-amd64 --version)" != ""
+          ./bin/jogger-agent-linux-amd64 --version | grep -F "${TAG#v}"
+
+      - name: Assemble assets
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          mkdir dist
+          cp agent/bin/jogger-agent-linux-* dist/
+          # Everything needed to install the server without cloning the repository.
+          tar -czf "dist/jogger-compose-${TAG#v}.tar.gz" \
+            docker/compose/docker-compose.yml docker/caddy/Caddyfile .env.production.example docs/INSTALL.md
+          cd dist && sha256sum * > SHA256SUMS && sha256sum -c SHA256SUMS
+
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$TAG" dist/* --clobber

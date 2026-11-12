@@ -490,3 +490,10 @@ Running log of choices made while building, where reality differed from the plan
 - Images are published under `ghcr.io/patrickepatate/` (`jogger`, `jogger-agent`, `jogger-runner`); every `ghcr.io/jogger/…` reference was renamed. First push was done by hand from a local amd64 build on 2026-11-10; the packages are private until made public on GitHub.
 - `.github/workflows/release-images.yml` builds and pushes `jogger` and `jogger-agent` (amd64 + arm64) when a GitHub release is published, tagged with the release version; `:latest` only moves for a non-pre-release. `runner-image.yml` also runs on a release.
 - **Not verified**: the workflow has never run (nothing is pushed to GitHub), and the server image has never been built for arm64. The rest of Task 60 (changelog, agent binaries, CI gating) is still to do.
+
+## Task 60: release automation
+- Trigger is "GitHub release published", not a pushed `v*` tag (asked for by the owner). One workflow, `.github/workflows/release.yml`: images (job `build`) and release assets (job `assets`: agent binaries for amd64/arm64, compose bundle, `SHA256SUMS`). The runner image keeps its own workflow, also triggered by a release.
+- Release notes are GitHub's generated notes (`gh release create --generate-notes`), not built from Conventional Commits: the history does not follow that convention.
+- No test namespace: a pre-release is the dry run and does not move `:latest`.
+- **Not verified**: the dry run on a pre-release has not been done. Locally checked only: `make build-all VERSION=x` and `--version` printing it.
+- CI fixes in the same session: `golangci-lint` is now built with the job's Go (the v1.64 binary refuses Go 1.25); `TwoFactorLoginTest` flaked when the clock crossed a 30-second TOTP window between setup and login.

@@ -9,13 +9,13 @@
 
 | Tasks | State |
 |-------|-------|
-| 1–39, 41–53, 56, 57, 61 | Done (see [DECISIONS.md](DECISIONS.md) for deviations and what was not verified) |
+| 1–39, 41–53, 56, 57, 60, 61 | Done (see [DECISIONS.md](DECISIONS.md) for deviations and what was not verified) |
 | 40 | **To do**: the real end-to-end run against GitHub. Procedure and script exist ([E2E.md](E2E.md)); the run itself needs a real GitHub App, repository and public URL |
 | 54 | **To do**: cache protocol spike, not performed ([spikes/cache-protocol.md](spikes/cache-protocol.md)) |
 | 55 | Deferred to v1.1 (depends on 54) |
 | 58 | **To do**: browser tests. Also the place to check the Content-Security-Policy, the log terminal and live updates in a real browser |
 | 59 | **To do**: accessibility pass |
-| 60 | **To do**: release automation |
+| 60 | Done, but the workflow has never run: a pre-release dry run is still needed |
 | 61 | Done out of order, before 58–60. Left for later: screenshots in `docs/img/`, and a walkthrough of INSTALL + GITHUB-APP by a new user |
 | 62 | **To do**: release checklist and final verification |
 
