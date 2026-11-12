@@ -6,6 +6,7 @@ namespace Tests\Feature\Auth;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Laravel\Fortify\Actions\ConfirmTwoFactorAuthentication;
 use Laravel\Fortify\Actions\EnableTwoFactorAuthentication;
 use Laravel\Fortify\Fortify;
@@ -21,6 +22,9 @@ class TwoFactorLoginTest extends TestCase
         $user = User::factory()->create();
         app(EnableTwoFactorAuthentication::class)($user);
         app(ConfirmTwoFactorAuthentication::class)($user, $this->otp($user));
+        // Forget the confirmation code: if the clock crosses a 30-second boundary before the login, the
+        // "previous window" code is that same code and Fortify would reject it as a replay.
+        Cache::flush();
 
         return $user->refresh();
     }

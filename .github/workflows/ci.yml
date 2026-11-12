@@ -112,6 +112,8 @@ jobs:
       - uses: golangci/golangci-lint-action@v6
         with:
           version: v1.64
+          # Built from source with the job's Go: the released binary refuses a newer Go than it was built with.
+          install-mode: goinstall
           working-directory: agent
 
       # The Docker integration tests skip themselves unless this image is present locally.
