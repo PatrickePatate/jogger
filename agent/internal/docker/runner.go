@@ -33,6 +33,8 @@ type Spec struct {
 	Registry   *RegistryAuth     `json:"registry_auth,omitempty"`
 	// ToolCacheVolume, when set, is a named volume shared by the pool's runners on this host.
 	ToolCacheVolume string `json:"tool_cache_volume,omitempty"`
+	// AllowSudo keeps Docker's default capabilities and lets processes gain privileges, so `sudo` works in jobs.
+	AllowSudo bool `json:"allow_sudo,omitempty"`
 }
 
 // toolCachePrefix is the only shape of volume name the server may ask for: never a host path, never a foreign volume.
@@ -157,9 +159,11 @@ func (r *Runner) create(ctx context.Context, s Spec, net string, labels map[stri
 	host := map[string]any{
 		"NetworkMode": net,
 		"AutoRemove":  true,
-		"SecurityOpt": []string{"no-new-privileges"},
-		"CapDrop":     []string{"ALL"},
 		"PidsLimit":   pidsLimit,
+	}
+	if !s.AllowSudo {
+		host["SecurityOpt"] = []string{"no-new-privileges"}
+		host["CapDrop"] = []string{"ALL"}
 	}
 	if s.CPU > 0 {
 		host["NanoCpus"] = int64(s.CPU * 1e9)

@@ -32,6 +32,7 @@ final class PoolResource extends JsonResource
             'idle_ttl_seconds' => $this->idle_ttl_seconds,
             'docker_mode' => $this->docker_mode->value,
             'persist_tool_cache' => $this->persist_tool_cache,
+            'allow_sudo' => $this->allow_sudo,
             'allowed_host_labels' => $this->allowed_host_labels,
             'status' => $this->status->value,
             'created_at' => $this->created_at?->toIso8601String(),

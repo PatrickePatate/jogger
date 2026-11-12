@@ -23,7 +23,9 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 RUN useradd --create-home --uid 1001 --shell /bin/bash runner \
- && mkdir -p /opt/hostedtoolcache && chown runner:runner /opt/hostedtoolcache
+ && mkdir -p /opt/hostedtoolcache && chown runner:runner /opt/hostedtoolcache \
+ # Only effective in pools with "Allow sudo": otherwise the container runs with no-new-privileges.
+ && echo 'runner ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/runner && chmod 0440 /etc/sudoers.d/runner
 
 WORKDIR /home/runner
 RUN case "${TARGETARCH:-$(dpkg --print-architecture)}" in \

@@ -56,6 +56,15 @@ class ToolCacheTest extends TestCase
         $this->assertSame($first['tool_cache_volume'], $second['tool_cache_volume']);
     }
 
+    public function test_sudo_is_only_allowed_when_the_pool_asks_for_it(): void
+    {
+        $locked = RunnerPool::factory()->create(['installation_id' => $this->installation->id]);
+        $open = RunnerPool::factory()->create(['installation_id' => $this->installation->id, 'allow_sudo' => true]);
+
+        $this->assertArrayNotHasKey('allow_sudo', $this->startPayload($locked));
+        $this->assertTrue($this->startPayload($open)['allow_sudo']);
+    }
+
     public function test_no_volume_when_the_option_is_off(): void
     {
         $pool = RunnerPool::factory()->create(['installation_id' => $this->installation->id, 'persist_tool_cache' => false]);

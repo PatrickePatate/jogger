@@ -21,6 +21,7 @@ Open **Pools → New pool**. You need the Operator role on the installation.
 | Docker inside jobs | **None**, or **Docker-in-Docker** when jobs need `docker build` or service containers. See the security note below. |
 | Only on hosts labelled | Restrict the pool to hosts carrying all of these host labels. Empty means any host. |
 | Keep the tool cache between jobs | Keeps toolchains downloaded by `actions/setup-*` in a volume on each host, shared by this pool's runners only. |
+| Allow sudo in jobs | Lets job steps use `sudo`, which actions that install packages need (for example `shivammathur/setup-php`). The runner then keeps Docker's default capabilities and jobs can become root inside their container. Leave it off for pools that run untrusted code. |
 
 For a **public repository** Jogger asks you to confirm: anyone who can open a pull request can run code on your hosts. Read [SECURITY.md](SECURITY.md) first.
 

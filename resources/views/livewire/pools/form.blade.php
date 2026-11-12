@@ -57,6 +57,8 @@
                 <x-ui.input label="Only on hosts labelled" name="allowed_host_labels" wire:model.blur="allowed_host_labels" placeholder="Any host" hint="Optional. Separated by commas." :error="$errors->first('allowed_host_labels')" />
                 <div class="sm:col-span-2">
                     <x-ui.toggle label="Keep the tool cache between jobs" name="persist_tool_cache" wire:model="persist_tool_cache" />
+                    <x-ui.toggle label="Allow sudo in jobs" name="allow_sudo" wire:model="allow_sudo" />
+                    <p class="text-sm text-muted">Needed by actions that install packages, such as setup-php. Jobs can then become root inside their container, so leave it off for pools that run untrusted code.</p>
                     <p class="mt-1 text-[0.8125rem] text-text-secondary">Toolchains downloaded by setup actions (Node, Python, Go…) are kept in a volume on each host, shared only by this pool's runners. Jobs of this pool can read and change what earlier jobs left there.</p>
                 </div>
             </div>

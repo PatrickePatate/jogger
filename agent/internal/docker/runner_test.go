@@ -277,3 +277,24 @@ func TestStreamLogsFollowsARealContainer(t *testing.T) {
 		t.Fatalf("logs = %q", out.String())
 	}
 }
+
+func TestAllowSudoKeepsDefaultCapabilities(t *testing.T) {
+	r := integration(t)
+	id := fmt.Sprintf("sudo-%d", time.Now().UnixNano())
+	cleanup(t, r, id)
+
+	s := spec(id, "sleep", "60")
+	s.AllowSudo = true
+	started, err := r.Start(context.Background(), s)
+	if err != nil {
+		t.Fatalf("start: %v", err)
+	}
+
+	host := inspect(t, r, started.ContainerID)["HostConfig"].(map[string]any)
+	if drop, _ := host["CapDrop"].([]any); len(drop) != 0 {
+		t.Errorf("CapDrop = %v, want none", drop)
+	}
+	if opts, _ := host["SecurityOpt"].([]any); len(opts) != 0 {
+		t.Errorf("SecurityOpt = %v, want none", opts)
+	}
+}

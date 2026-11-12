@@ -52,6 +52,7 @@ class RunnerPool extends Model implements Grantable
         'idle_ttl_seconds' => 'integer',
         'runner_group_id' => 'integer',
         'persist_tool_cache' => 'boolean',
+        'allow_sudo' => 'boolean',
     ];
 
     /**

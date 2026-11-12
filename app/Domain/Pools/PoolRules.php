@@ -43,6 +43,7 @@ final class PoolRules
             'idle_ttl_seconds' => ['sometimes', 'integer', 'min:60', 'max:86400'],
             'docker_mode' => ['sometimes', Rule::enum(DockerMode::class)],
             'persist_tool_cache' => ['sometimes', 'boolean'],
+            'allow_sudo' => ['sometimes', 'boolean'],
             'allowed_host_labels' => ['sometimes', 'array', 'max:20'],
             'allowed_host_labels.*' => ['string', 'distinct', 'regex:'.self::LABEL],
             'status' => ['sometimes', Rule::in(['active', 'paused'])],

@@ -71,6 +71,8 @@ final class ProvisionRunner
                 // which the agent refuses.
                 ...(($env = $this->secrets->envFor($pool)) !== [] ? ['env' => $env] : []),
                 ...(($auth = $this->secrets->registryAuthFor($pool)) !== null ? ['registry_auth' => $auth] : []),
+                // Off by default: with it the runner keeps Docker's default capabilities and may gain privileges.
+                ...($pool->allow_sudo ? ['allow_sudo' => true] : []),
                 // One volume per pool on each host; the name never crosses pools, so neither does the cache.
                 ...($pool->persist_tool_cache ? ['tool_cache_volume' => self::toolCacheVolume($pool)] : []),
             ]);

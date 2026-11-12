@@ -58,6 +58,8 @@ final class Form extends Component
 
     public bool $persist_tool_cache = false;
 
+    public bool $allow_sudo = false;
+
     public bool $confirm_public = false;
 
     public function mount(?string $pool = null): void
@@ -95,6 +97,7 @@ final class Form extends Component
             'docker_mode' => $record->docker_mode->value,
             'allowed_host_labels' => implode(', ', $record->allowed_host_labels),
             'persist_tool_cache' => $record->persist_tool_cache,
+            'allow_sudo' => $record->allow_sudo,
         ]);
     }
 
@@ -198,6 +201,7 @@ final class Form extends Component
             'docker_mode' => $this->docker_mode,
             'allowed_host_labels' => $list($this->allowed_host_labels),
             'persist_tool_cache' => $this->persist_tool_cache,
+            'allow_sudo' => $this->allow_sudo,
         ];
 
         return $this->poolId !== null ? $input : $input + [

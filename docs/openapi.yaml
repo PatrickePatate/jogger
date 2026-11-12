@@ -428,6 +428,7 @@ components:
         idle_ttl_seconds: { type: integer, minimum: 60, maximum: 86400 }
         docker_mode: { type: string, enum: [none, dind] }
         persist_tool_cache: { type: boolean }
+        allow_sudo: { type: boolean, description: "Jobs may use sudo inside the runner container" }
         allowed_host_labels:
           type: array
           maxItems: 20
