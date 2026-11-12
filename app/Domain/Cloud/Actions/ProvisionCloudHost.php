@@ -105,7 +105,7 @@ final class ProvisionCloudHost
             } catch (CloudException $e) {
                 $token->delete();
                 $host->forceDelete();
-                Audit::record('cloud.host_create_failed', $locked, ['name' => $name, 'reason' => $e->reason]);
+                Audit::record('cloud.host_create_failed', $locked, ['name' => $name, 'reason' => $e->reason, 'message' => mb_substr($e->getMessage(), 0, 300)]);
 
                 return null;
             }

@@ -45,8 +45,8 @@ final class HetznerDriver implements CloudDriver
 
         $payload = [
             'name' => $spec->name,
-            'server_type' => $spec->serverType,
-            'location' => $spec->location,
+            'server_type' => mb_strtolower($spec->serverType), // Hetzner names are lower-case; "CCX33" is refused
+            'location' => mb_strtolower($spec->location),
             // Snapshots are addressed by numeric id, public images by name.
             'image' => ctype_digit($spec->image) ? (int) $spec->image : $spec->image,
             'user_data' => $spec->userData,
