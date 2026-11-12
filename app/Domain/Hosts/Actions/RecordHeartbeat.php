@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace App\Domain\Hosts\Actions;
 
+use App\Domain\Cloud\Actions\ProvisionWaitingJobs;
 use App\Domain\Hosts\Enums\HostStatus;
 use App\Domain\Hosts\Events\HostStatusChanged;
 use App\Domain\Hosts\Models\Host;
 
 final class RecordHeartbeat
 {
-    public function __construct(private readonly DrainHost $drain) {}
+    public function __construct(
+        private readonly DrainHost $drain,
+        private readonly ProvisionWaitingJobs $provisionWaiting,
+    ) {}
 
     /**
      * Stores the host's latest capacity facts and marks it alive. A pending or offline host becomes online;
@@ -35,6 +39,11 @@ final class RecordHeartbeat
 
         if ($changed) {
             event(new HostStatusChanged($host));
+
+            // A cloud host that just came online can take runners: queue the provisioning its pools were waiting on.
+            if ($host->host_template_id !== null && ($template = $host->template) !== null) {
+                ($this->provisionWaiting)($template);
+            }
         }
 
         // A draining host whose last runner is gone settles into cordoned.

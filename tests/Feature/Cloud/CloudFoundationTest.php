@@ -171,7 +171,7 @@ class CloudFoundationTest extends TestCase
         $manager = app(CloudManager::class);
         $provider = CloudProvider::factory()->create(['driver' => 'fake']);
 
-        $this->assertSame(['fake'], $manager->drivers());
+        $this->assertContains('fake', $manager->drivers());
         $this->assertInstanceOf(FakeCloudDriver::class, $manager->driver('fake'));
         $this->assertSame(app(FakeCloudDriver::class), $manager->for($provider));
 

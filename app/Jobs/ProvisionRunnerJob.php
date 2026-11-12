@@ -86,6 +86,7 @@ final class ProvisionRunnerJob implements ShouldQueue
         try {
             $runner = $provision($pool);
         } catch (HostUnavailable) {
+            ScaleCloudHostsJob::dispatchForPool($pool->id);
             $this->waiting($job, PoolMatch::describe(PoolMatch::NO_CAPACITY, 'no host has room for a runner of this pool'), 30);
 
             return;

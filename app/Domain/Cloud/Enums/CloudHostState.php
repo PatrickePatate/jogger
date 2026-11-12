@@ -49,6 +49,16 @@ enum CloudHostState: string
         return $this === self::Deleted || $this === self::Failed;
     }
 
+    /**
+     * Every state that still holds a server or is about to: all but deleted and failed.
+     *
+     * @return list<self>
+     */
+    public static function open(): array
+    {
+        return array_values(array_filter(self::cases(), fn (self $state) => ! $state->isTerminal()));
+    }
+
     public function label(): string
     {
         return ucfirst($this->value);

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Hosts\Actions;
 
+use App\Domain\Cloud\Enums\CloudHostState;
+use App\Domain\Cloud\Models\HostTemplate;
 use App\Domain\Hosts\Enums\HostStatus;
 use App\Domain\Hosts\Models\Host;
 use App\Domain\Hosts\Models\HostImage;
@@ -15,7 +17,8 @@ use Illuminate\Support\Facades\DB;
  * Chooses the host for a new runner of a pool: online (so not cordoned, draining, offline or revoked), carrying
  * the pool's required host labels, of the architecture the pool's labels name, and with room for the runner.
  * Among those, hosts that already have the pool's image come first, then the one with the most free memory.
- * Null when no host qualifies.
+ * A cloud host (one with a host template) also needs its cloud state to be online and fewer present runners than
+ * its template's max_runners_per_host. Null when no host qualifies.
  */
 final class PickHost
 {
@@ -53,7 +56,27 @@ final class PickHost
         $bestScore = [-1, -1.0];
 
         $hosts = Host::query()->where('status', HostStatus::Online->value)->whereKeyNot($except)->orderBy('name')->get();
+
+        $cloud = $hosts->filter(fn (Host $host) => $host->host_template_id !== null);
+        $cloudLimits = $cloud->isEmpty() ? collect() : HostTemplate::query()
+            ->whereIn('id', $cloud->pluck('host_template_id')->unique()->all())
+            ->pluck('max_runners_per_host', 'id');
+        $present = $cloud->isEmpty() ? collect() : DB::table('runners')
+            ->whereIn('host_id', $cloud->pluck('id')->all())
+            ->whereIn('state', RunnerState::values(RunnerState::present()))
+            ->groupBy('host_id')
+            ->selectRaw('host_id, count(*) as n')
+            ->pluck('n', 'host_id');
+
         foreach ($hosts as $host) {
+            if ($host->host_template_id !== null) {
+                if ($host->cloud_state !== CloudHostState::Online) {
+                    continue;
+                }
+                if ((int) ($present[$host->id] ?? 0) >= (int) ($cloudLimits[$host->host_template_id] ?? 0)) {
+                    continue;
+                }
+            }
             if ($arches !== [] && ! in_array(mb_strtolower((string) $host->arch), $arches, true)) {
                 continue;
             }

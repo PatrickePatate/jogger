@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Cloud\Drivers\HetznerDriver;
 use App\Domain\Cloud\Testing\FakeCloudDriver;
 
 return [
@@ -111,11 +112,13 @@ return [
     'cloud' => [
         'drivers' => [
             'fake' => FakeCloudDriver::class,
+            'hetzner' => HetznerDriver::class,
         ],
         // Written into every managed server's labels; reconciliation only touches servers carrying it.
         'instance_id' => env('JOGGER_INSTANCE_ID'),
         // Global cap on cloud hosts across all templates.
         'max_hosts' => (int) env('JOGGER_CLOUD_MAX_HOSTS', 10),
+        'agent_image' => env('JOGGER_AGENT_IMAGE', 'ghcr.io/patrickepatate/jogger-agent:latest'),
         'boot_timeout_seconds' => 300,
     ],
 

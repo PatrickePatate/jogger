@@ -8,6 +8,7 @@ use App\Domain\Github\Support\GithubLane;
 use App\Domain\Pools\Models\RunnerPool;
 use App\Domain\Pools\PoolDemand;
 use App\Domain\Runners\Actions\ProvisionRunner;
+use App\Jobs\ScaleCloudHostsJob;
 use App\Support\Exceptions\GithubApiError;
 use App\Support\Exceptions\GithubRateLimited;
 use App\Support\Exceptions\HostUnavailable;
@@ -47,6 +48,7 @@ final class ReconcilePoolCapacity
                 $this->lane->pause($pool->installation_id, $e->retryAfterSeconds);
                 break;
             } catch (HostUnavailable) {
+                ScaleCloudHostsJob::dispatchForPool($pool->id);
                 break; // nothing to do until a host has room
             } catch (GithubApiError $e) {
                 Log::warning('pool reconcile: provisioning failed', ['pool' => $pool->id, 'error' => $e->getMessage()]);
