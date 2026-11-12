@@ -503,3 +503,7 @@ Running log of choices made while building, where reality differed from the plan
 - 59: axe-core injected from `node_modules`; fixes in the dropdown, header, hosts and pools views and two colour tokens. Left open: keyboard walkthrough, screen readers, pages outside the scanned seven.
 - 62: only the checklist and traceability table were produced (60 criteria: 44 automated, 12 manual, 4 gaps). No soak test, no real GitHub run, no release dry run; v1.0.0 is not tagged. Gap found: the server side of the agent upgrade announcement (SPEC §3.4.2) has no route.
 - **Not verified**: the CI `browser` job and the CI fixes have not run on GitHub.
+
+## First deployment (2026-11-12)
+- Found while deploying behind a reverse proxy, both fixed: the app did not trust forwarded headers (now trusted from private addresses only), and enrollment gave agents the internal websocket host `reverb:8080` instead of the public address. The agent image also kept its credential in `/data` while the docs mount `/var/lib/jogger-agent`; the image now uses the documented path.
+- A worker on an IPv6-only host works through DNS64/NAT64 when Docker networks are IPv6-enabled (`ipv6`, `default-network-opts` with `enable_ipv6`, an IPv6 `default-address-pools` entry, DNS64 resolvers in `daemon.json`). Verified: a container on a user-defined network reaches `api.github.com`. **Not verified**: a real job on that worker.
