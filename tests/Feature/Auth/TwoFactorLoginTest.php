@@ -19,6 +19,12 @@ class TwoFactorLoginTest extends TestCase
 
     private function userWithTwoFactor(): User
     {
+        // Codes depend on the real clock (the library does not use Carbon). Start early in a 30-second window so
+        // setup and login always fall in the same one; otherwise the test fails a few times in a hundred.
+        if (($elapsed = time() % 30) >= 24) {
+            sleep(31 - $elapsed);
+        }
+
         $user = User::factory()->create();
         app(EnableTwoFactorAuthentication::class)($user);
         app(ConfirmTwoFactorAuthentication::class)($user, $this->otp($user));

@@ -57,6 +57,10 @@ An operator can **Terminate** a runner. Terminating a busy runner kills its job 
 
 A job's page shows its log live while it runs and keeps it afterwards for the retention period (30 days by default). Logs can be downloaded as text or gzip. Known secret values are replaced with `***`.
 
+The log is the runner container's output: the runner's own messages plus the output of each step. Step output appears when the step finishes, not line by line, because that is when the GitHub runner writes it to disk; GitHub's own page stays the place for line-by-line output of a long step. GitHub secrets are already masked by the runner before the output reaches Jogger. Custom runner images get this from the stock image's entrypoint; set `JOGGER_STEP_LOGS=0` in a pool's environment to turn step output off.
+
+A runner's row on the Runners page links to its job, and the expanded row has a "View job and logs" button.
+
 ## Secrets and environment variables
 
 **Secrets** (in the sidebar) are values Jogger gives to runner containers. They are separate from GitHub's own secrets, which keep working as usual.

@@ -30,8 +30,11 @@ follow_step_logs() {
     sleep 0.2
   done
 }
-if [ "${JOGGER_STEP_LOGS:-1}" != "0" ]; then
-  follow_step_logs "$PWD/_diag/pages" &
-fi
+case "${JOGGER_STEP_LOGS:-pages}" in
+  # The runner's own stdout printing: diagnostics only (no step output), very verbose. For debugging a runner.
+  stdout) export ACTIONS_RUNNER_PRINT_LOG_TO_STDOUT=1 ;;
+  # Default: echo the page files. The runner fills them when a step ends, so output arrives step by step.
+  pages) follow_step_logs "$PWD/_diag/pages" & ;;
+esac
 
 exec ./run.sh --jitconfig "$jit"

@@ -507,3 +507,10 @@ Running log of choices made while building, where reality differed from the plan
 ## First deployment (2026-11-12)
 - Found while deploying behind a reverse proxy, both fixed: the app did not trust forwarded headers (now trusted from private addresses only), and enrollment gave agents the internal websocket host `reverb:8080` instead of the public address. The agent image also kept its credential in `/data` while the docs mount `/var/lib/jogger-agent`; the image now uses the documented path.
 - A worker on an IPv6-only host works through DNS64/NAT64 when Docker networks are IPv6-enabled (`ipv6`, `default-network-opts` with `enable_ipv6`, an IPv6 `default-address-pools` entry, DNS64 resolvers in `daemon.json`). Verified: a container on a user-defined network reaches `api.github.com`. **Not verified**: a real job on that worker.
+
+## First real jobs (2026-11-12)
+- Bugs found by the first real jobs, fixed: an empty `env` reached the agent as a JSON list; rootless dind cannot run in an unprivileged LXC (`JOGGER_DIND_IMAGE` on the host selects another sidecar image); the runner now shares the dind sidecar's network namespace so `services:` ports are on the job's localhost.
+- New pool option `allow_sudo` (off by default): without it `sudo` cannot work, and actions such as `setup-php` hang.
+- Job logs: Jogger only captured the listener's few lines. The runner image's entrypoint now echoes `_diag/pages/*.log`, which the runner fills when a step ends, so output is step by step, not line by line. `ACTIONS_RUNNER_PRINT_LOG_TO_STDOUT` was tried and prints diagnostics only.
+- This repository's `php`, `assets` and `agent` CI jobs run on its own instance; `browser` and the release workflows stay on GitHub-hosted runners.
+- **Not verified**: outbound network from containers started inside dind on the IPv6-only worker; the agent's realtime connection dropping about every 70 s.
