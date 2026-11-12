@@ -119,7 +119,7 @@ return [
         // Global cap on cloud hosts across all templates.
         'max_hosts' => (int) env('JOGGER_CLOUD_MAX_HOSTS', 10),
         'agent_image' => env('JOGGER_AGENT_IMAGE', 'ghcr.io/patrickepatate/jogger-agent:latest'),
-        'boot_timeout_seconds' => 300,
+        'boot_timeout_seconds' => (int) env('JOGGER_CLOUD_BOOT_TIMEOUT', 300),
     ],
 
 ];
