@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Hosts\Models;
 
+use App\Domain\Cloud\Enums\CloudHostState;
+use App\Domain\Cloud\Models\HostTemplate;
 use App\Domain\Hosts\Enums\HostStatus;
 use App\Support\Concerns\HasUuid7;
 use App\Support\Pg\PgTextArray;
@@ -11,6 +13,7 @@ use Database\Factories\HostFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -38,7 +41,19 @@ class Host extends Model
         'disk_free_gb' => 'integer',
         'last_seen_at' => 'datetime',
         'revoked_at' => 'datetime',
+        'ephemeral' => 'boolean',
+        'cloud_state' => CloudHostState::class,
+        'cloud_state_changed_at' => 'datetime',
+        'billed_from' => 'datetime',
     ];
+
+    /**
+     * @return BelongsTo<HostTemplate, $this>
+     */
+    public function template(): BelongsTo
+    {
+        return $this->belongsTo(HostTemplate::class, 'host_template_id');
+    }
 
     public static function hashCredential(string $plain): string
     {

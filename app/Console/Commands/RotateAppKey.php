@@ -21,6 +21,7 @@ final class RotateAppKey extends Command
         'secrets' => ['id', ['value', 'previous_value']],
         'notification_rules' => ['id', ['secret']],
         'users' => ['id', ['two_factor_secret', 'two_factor_recovery_codes']],
+        'cloud_providers' => ['id', ['credentials']],
     ];
 
     public function handle(): int

@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Domain\Access\Models\PersonalAccessToken;
+use App\Domain\Cloud\Testing\FakeCloudDriver;
 use App\Domain\Github\Contracts\GithubGateway;
 use App\Domain\Github\Gateway\HttpGithubGateway;
 use App\Domain\Github\Gateway\RateLimitTracker;
@@ -50,6 +51,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(SecretSource::class, ResolveSecretsForPool::class);
 
         $this->app->singleton(RateLimitTracker::class);
+        $this->app->singleton(FakeCloudDriver::class);
         $this->app->bind(GithubIdentityProvider::class, GithubOAuth::class);
 
         // Event name => handler. Later tasks add workflow_job, installation, ...

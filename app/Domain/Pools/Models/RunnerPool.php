@@ -6,6 +6,7 @@ namespace App\Domain\Pools\Models;
 
 use App\Domain\Access\Concerns\VisibleTo;
 use App\Domain\Access\Contracts\Grantable;
+use App\Domain\Cloud\Models\HostTemplate;
 use App\Domain\Github\Data\RunnerScope;
 use App\Domain\Github\Enums\ScopeType;
 use App\Domain\Github\Models\Installation;
@@ -21,6 +22,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -61,6 +63,16 @@ class RunnerPool extends Model implements Grantable
     public function installation(): BelongsTo
     {
         return $this->belongsTo(Installation::class);
+    }
+
+    /**
+     * Cloud host templates that may create servers for this pool.
+     *
+     * @return BelongsToMany<HostTemplate, $this>
+     */
+    public function templates(): BelongsToMany
+    {
+        return $this->belongsToMany(HostTemplate::class, 'host_template_pool');
     }
 
     public function grantableType(): string

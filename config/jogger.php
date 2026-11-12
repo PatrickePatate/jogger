@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Domain\Cloud\Testing\FakeCloudDriver;
+
 return [
 
     /*
@@ -100,6 +102,21 @@ return [
         'retries' => (int) env('JOGGER_GITHUB_RETRIES', 3),
         // Base delay for exponential backoff with jitter; 0 disables sleeping (tests).
         'retry_base_ms' => (int) env('JOGGER_GITHUB_RETRY_MS', 250),
+    ],
+
+    /*
+    | Cloud hosts. Each driver name is the value of a provider's `driver` column. The "fake" driver is
+    | test-only: it keeps servers in memory and creates nothing at any provider.
+    */
+    'cloud' => [
+        'drivers' => [
+            'fake' => FakeCloudDriver::class,
+        ],
+        // Written into every managed server's labels; reconciliation only touches servers carrying it.
+        'instance_id' => env('JOGGER_INSTANCE_ID'),
+        // Global cap on cloud hosts across all templates.
+        'max_hosts' => (int) env('JOGGER_CLOUD_MAX_HOSTS', 10),
+        'boot_timeout_seconds' => 300,
     ],
 
 ];

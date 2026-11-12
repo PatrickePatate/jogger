@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Security;
 
 use App\Console\Commands\RotateAppKey;
+use App\Domain\Cloud\Models\CloudProvider;
 use App\Domain\Github\Models\GithubApp;
 use App\Domain\Notifications\Models\NotificationRule;
 use App\Domain\Secrets\Enums\SecretScope;
@@ -101,10 +102,10 @@ class HardeningTest extends TestCase
                 $covered[] = "{$table}.{$column}";
             }
         }
-        foreach ([GithubApp::class, Secret::class, NotificationRule::class] as $class) {
+        foreach ([GithubApp::class, Secret::class, NotificationRule::class, CloudProvider::class] as $class) {
             $model = new $class;
             foreach ($model->getCasts() as $column => $cast) {
-                if ($cast === 'encrypted') {
+                if (str_starts_with((string) $cast, 'encrypted')) {
                     $this->assertContains($model->getTable().'.'.$column, $covered);
                 }
             }
