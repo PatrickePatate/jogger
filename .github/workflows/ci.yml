@@ -78,6 +78,75 @@ jobs:
       - name: Tests (PHPUnit)
         run: make test
 
+  browser:
+    name: Browser (Dusk)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: jogger
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: jogger_dusk
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U jogger -d jogger_dusk"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_pgsql, redis, intl, mbstring
+          coverage: none
+          tools: composer:v2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Build assets
+        run: |
+          npm ci
+          npm run build
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          cp .env.dusk.example .env.dusk.local
+          sed -i 's/^REDIS_PORT=.*/REDIS_PORT=6379/' .env.dusk.local
+
+      - name: Install ChromeDriver matching the runner's Chrome
+        run: php artisan dusk:chrome-driver --detect
+
+      - name: Browser tests
+        run: tests/Browser/run.sh
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: dusk-failure
+          path: |
+            tests/Browser/screenshots
+            tests/Browser/console
+            storage/logs/dusk-*.log
+          if-no-files-found: ignore
+
   assets:
     name: Frontend build
     runs-on: ubuntu-latest

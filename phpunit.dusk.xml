@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+         failOnWarning="true">
+    <testsuites>
+        <testsuite name="Browser">
+            <directory>tests/Browser</directory>
+        </testsuite>
+    </testsuites>
+    <!-- No <env> overrides: tests/Browser/run.sh exports .env.dusk.local so the test process and the served app agree. -->
+</phpunit>
