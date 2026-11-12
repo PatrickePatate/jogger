@@ -1,6 +1,6 @@
-# Cloud hosts (plan)
+# Cloud hosts
 
-> Status: **planned, not implemented.** Decisions marked "decided" were made by the project owner on 2026-11-12.
+> Status: **implemented for Hetzner Cloud (steps C1–C6), tested against a simulated provider only.** No real server has been created yet. Scaleway, DigitalOcean, AWS EC2 and OpenStack (C8–C11) are not implemented. Decisions marked "decided" were made by the project owner on 2026-11-12.
 
 A pool can be backed by a cloud template. When jobs wait and no host has a free slot, Jogger creates a server at a cloud provider, the agent on it enrolls, the jobs run, and Jogger deletes the server once it has been idle.
 
@@ -99,3 +99,22 @@ One driver for any OpenStack cloud, OVHcloud Public Cloud first.
 | C9 | DigitalOcean driver | 3 h |
 | C10 | AWS EC2 driver (template fields for subnet and security group, optional spot) | 8 h |
 | C11 | OpenStack driver, verified on OVHcloud | 8 h |
+
+## Using it (Hetzner)
+
+1. In the Hetzner Cloud console create a project and an API token with read and write access.
+2. In Jogger, open **Cloud** in the administration menu (`/admin/cloud`). Add a provider: driver `hetzner`, paste the token. Jogger checks the token before saving and never shows it again.
+3. Add a template: server type (for example `cx22`), location (for example `nbg1`), image (`ubuntu-24.04`, or a snapshot id), jobs per server, warm servers, maximum servers, idle time, and the pools that may use it.
+4. Queue a job for one of those pools. With no free host, Jogger creates a server; the job shows "Waiting for a cloud server" until its agent enrolls.
+
+Settings: `JOGGER_CLOUD_MAX_HOSTS` (global cap, default 10), `JOGGER_AGENT_IMAGE` (agent image started on new servers), `JOGGER_INSTANCE_ID` (label written on servers; defaults to a value derived from `APP_KEY`). Two installations sharing one cloud project must have different instance ids, or each would delete the other's servers as orphans.
+
+Scheduler: `jogger:scale-cloud-hosts` every minute (boot timeouts, scale-up, scale-down), `jogger:reconcile-cloud-hosts` every five minutes (orphans, lost servers, retried deletions).
+
+## Not done or not verified
+
+- **No run against a real provider.** The Hetzner driver is tested with faked HTTP responses, the cloud-init script only with a syntax check. The first real server is the real test (step C7).
+- No command to build a snapshot image yet: a stock image installs Docker and pulls the runner image at boot, which takes several minutes. Raise `cloud.boot_timeout_seconds` (300) if servers are deleted before they enroll.
+- The provider call happens inside a database transaction; if the commit fails after the server was created, the server is an orphan until reconciliation removes it (10 minutes at the earliest).
+- No alert rule and no cost page yet; cloud events are in the audit log only.
+- A cloud server has `sudo` and Docker-in-Docker constraints like any host; the rootless sidecar should work on a real VM but was not tried.
