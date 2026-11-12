@@ -5,7 +5,16 @@ generated when the release is created (see [docs/RELEASING.md](docs/RELEASING.md
 
 ## Unreleased
 
+## 1.0.0 - 2026-11-12
+
 First public version: ephemeral runners per job, pools with warm runners, multi-host agent, live UI and logs,
 teams and roles, API, secrets, insights, alerts, Prometheus endpoint, Docker Compose install.
 
 Not included: the Actions cache service (planned for 1.1).
+
+Added since the first deployment: a per-pool option to allow `sudo` in jobs, step output in job logs, a host
+setting for the Docker-in-Docker sidecar image (`JOGGER_DIND_IMAGE`), and service container ports on the job's
+localhost.
+
+Known limits: step output reaches Jogger when a step ends, not line by line; no soak test has been run; see
+[docs/RELEASE-CHECKLIST.md](docs/RELEASE-CHECKLIST.md) for what was not verified.
