@@ -13,4 +13,25 @@ jit="$JIT_CONFIG"
 unset JIT_CONFIG
 
 cd "${RUNNER_HOME:-/home/runner}"
+
+# The runner sends step output to GitHub only, but also writes it to _diag/pages while a step runs (already with
+# secrets masked). Echo those files to stdout, which is what the Jogger agent ships, so the job's log is live in
+# Jogger too. Without this, Jogger would only see the listener's few lines.
+follow_step_logs() {
+  local dir="$1" f
+  declare -A seen=()
+  while :; do
+    for f in "$dir"/*.log; do
+      [ -e "$f" ] || continue
+      [ -n "${seen[$f]:-}" ] && continue
+      seen[$f]=1
+      tail -n +1 -f "$f" 2>/dev/null &
+    done
+    sleep 0.2
+  done
+}
+if [ "${JOGGER_STEP_LOGS:-1}" != "0" ]; then
+  follow_step_logs "$PWD/_diag/pages" &
+fi
+
 exec ./run.sh --jitconfig "$jit"

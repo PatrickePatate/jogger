@@ -52,6 +52,11 @@
                     <tr wire:key="runner-detail-{{ $runner->id }}">
                         <td colspan="7" class="bg-bg/60">
                             <x-ui.stepper title="Lifecycle of {{ $runner->name }}" :steps="$this->lifecycle($runner)" class="shadow-none" />
+                            @if ($runner->job)
+                                <p class="mt-3">
+                                    <x-ui.button size="sm" variant="secondary" :href="route('jobs.show', $runner->job)" wire:navigate>View job and logs</x-ui.button>
+                                </p>
+                            @endif
                         </td>
                     </tr>
                 @endif
