@@ -1,25 +1,25 @@
 @php
     // Items appear automatically once their route exists.
     $nav = collect([
-        ['route' => 'overview', 'label' => 'Overview', 'icon' => 'home'],
-        ['route' => 'jobs.index', 'label' => 'Jobs', 'icon' => 'list'],
-        ['route' => 'pools.index', 'label' => 'Pools', 'icon' => 'cpu'],
-        ['route' => 'runners.index', 'label' => 'Runners', 'icon' => 'terminal'],
-        ['route' => 'hosts.index', 'label' => 'Hosts', 'icon' => 'server'],
-        ['route' => 'insights.index', 'label' => 'Insights', 'icon' => 'list'],
-        ['route' => 'secrets.index', 'label' => 'Secrets', 'icon' => 'check-circle'],
-        ['route' => 'github.connect', 'label' => 'GitHub', 'icon' => 'terminal', 'admin' => true],
-        ['route' => 'github.installations', 'label' => 'Installations', 'icon' => 'server', 'admin' => true],
-        ['route' => 'github.deliveries', 'label' => 'Deliveries', 'icon' => 'list', 'admin' => true],
-        ['route' => 'admin.users', 'label' => 'Users', 'icon' => 'cpu', 'admin' => true],
-        ['route' => 'admin.teams', 'label' => 'Teams', 'icon' => 'server', 'admin' => true],
-        ['route' => 'admin.audit', 'label' => 'Audit log', 'icon' => 'list', 'admin' => true],
-        ['route' => 'admin.settings', 'label' => 'Settings', 'icon' => 'cpu', 'admin' => true],
-        ['route' => 'admin.cloud', 'label' => 'Cloud hosts', 'icon' => 'server', 'admin' => true],
-        ['route' => 'dev.ui', 'label' => 'UI kit', 'icon' => 'info', 'dev' => true],
+        ['route' => 'overview', 'label' => 'Overview', 'icon' => 'layout-dashboard', 'group' => ''],
+        ['route' => 'jobs.index', 'label' => 'Jobs', 'icon' => 'list-checks', 'group' => 'CI'],
+        ['route' => 'pools.index', 'label' => 'Pools', 'icon' => 'layers', 'group' => 'CI'],
+        ['route' => 'runners.index', 'label' => 'Runners', 'icon' => 'box', 'group' => 'CI'],
+        ['route' => 'secrets.index', 'label' => 'Secrets', 'icon' => 'key', 'group' => 'CI'],
+        ['route' => 'insights.index', 'label' => 'Insights', 'icon' => 'bar-chart', 'group' => 'CI'],
+        ['route' => 'hosts.index', 'label' => 'Hosts', 'icon' => 'server', 'group' => 'Infrastructure'],
+        ['route' => 'admin.cloud', 'label' => 'Cloud hosts', 'icon' => 'cloud', 'admin' => true, 'group' => 'Infrastructure'],
+        ['route' => 'github.connect', 'label' => 'GitHub', 'icon' => 'git-branch', 'admin' => true, 'group' => 'GitHub'],
+        ['route' => 'github.installations', 'label' => 'Installations', 'icon' => 'plug', 'admin' => true, 'group' => 'GitHub'],
+        ['route' => 'github.deliveries', 'label' => 'Deliveries', 'icon' => 'inbox', 'admin' => true, 'group' => 'GitHub'],
+        ['route' => 'admin.users', 'label' => 'Users', 'icon' => 'users', 'admin' => true, 'group' => 'Administration'],
+        ['route' => 'admin.teams', 'label' => 'Teams', 'icon' => 'building', 'admin' => true, 'group' => 'Administration'],
+        ['route' => 'admin.audit', 'label' => 'Audit log', 'icon' => 'clipboard', 'admin' => true, 'group' => 'Administration'],
+        ['route' => 'admin.settings', 'label' => 'Settings', 'icon' => 'sliders', 'admin' => true, 'group' => 'Administration'],
+        ['route' => 'dev.ui', 'label' => 'UI kit', 'icon' => 'shapes', 'dev' => true, 'group' => 'Development'],
     ])->filter(fn ($i) => Route::has($i['route'])
         && (! ($i['dev'] ?? false) || app()->isLocal())
-        && (! ($i['admin'] ?? false) || auth()->user()?->isAdmin()));
+        && (! ($i['admin'] ?? false) || auth()->user()?->isAdmin()))->groupBy('group');
 @endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -37,13 +37,20 @@
                 <span class="grid size-7 place-items-center rounded-lg bg-ink text-surface"><x-icon name="terminal" :size="16" /></span>
                 jogger
             </div>
-            <nav class="flex-1 space-y-0.5 px-3 py-2">
-                @foreach ($nav as $item)
-                    @php($active = request()->routeIs($item['route']) || (str_ends_with($item['route'], '.index') && request()->routeIs(Str::before($item['route'], '.').'.*')))
-                    <a href="{{ route($item['route']) }}" @if($active) aria-current="page" @endif
-                       @class(['flex items-center gap-3 rounded-control px-3 py-2 font-medium transition-colors', 'bg-ink/5 text-text' => $active, 'text-text-secondary hover:bg-ink/5 hover:text-text' => ! $active])>
-                        <x-icon :name="$item['icon']" :size="18" />{{ $item['label'] }}
-                    </a>
+            <nav class="flex-1 space-y-5 overflow-y-auto px-3 py-3" aria-label="Sections">
+                @foreach ($nav as $group => $items)
+                    <div @if($group !== '') role="group" aria-label="{{ $group }}" @endif class="space-y-0.5">
+                        @if ($group !== '')
+                            <p class="px-3 pb-1 text-[0.6875rem] font-semibold uppercase tracking-wider text-text-secondary/80">{{ $group }}</p>
+                        @endif
+                        @foreach ($items as $item)
+                            @php($active = request()->routeIs($item['route']) || (str_ends_with($item['route'], '.index') && request()->routeIs(Str::before($item['route'], '.').'.*')))
+                            <a href="{{ route($item['route']) }}" @if($active) aria-current="page" @endif
+                               @class(['relative flex items-center gap-3 rounded-control px-3 py-2 font-medium transition-colors', 'bg-ink/5 text-text before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-ink' => $active, 'text-text-secondary hover:bg-ink/5 hover:text-text' => ! $active])>
+                                <x-icon :name="$item['icon']" :size="18" />{{ $item['label'] }}
+                            </a>
+                        @endforeach
+                    </div>
                 @endforeach
             </nav>
             <div class="border-t border-border p-3"><x-theme-toggle /></div>
@@ -72,14 +79,14 @@
                             </button>
                         </x-slot:trigger>
                         <div class="px-3 py-2 text-[0.8125rem] text-text-secondary">{{ auth()->user()->email }}</div>
-                        <x-ui.dropdown-item href="{{ route('settings.security') }}" icon="check-circle">Security</x-ui.dropdown-item>
-                        <x-ui.dropdown-item href="{{ route('settings.tokens') }}" icon="terminal">API tokens</x-ui.dropdown-item>
+                        <x-ui.dropdown-item href="{{ route('settings.security') }}" icon="shield">Security</x-ui.dropdown-item>
+                        <x-ui.dropdown-item href="{{ route('settings.tokens') }}" icon="key">API tokens</x-ui.dropdown-item>
                         @can('admin')
-                            <x-ui.dropdown-item href="{{ route('settings.notifications') }}" icon="info">Notifications</x-ui.dropdown-item>
+                            <x-ui.dropdown-item href="{{ route('settings.notifications') }}" icon="bell">Notifications</x-ui.dropdown-item>
                         @endcan
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
-                            <x-ui.dropdown-item type="submit" icon="x">Sign out</x-ui.dropdown-item>
+                            <x-ui.dropdown-item type="submit" icon="log-out">Sign out</x-ui.dropdown-item>
                         </form>
                     </x-ui.dropdown>
                 @endauth
