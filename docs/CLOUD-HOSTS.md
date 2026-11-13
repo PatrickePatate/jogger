@@ -1,6 +1,6 @@
 # Cloud hosts
 
-> Status: **implemented for Hetzner Cloud (steps C1–C6), tested against a simulated provider only.** No real server has been created yet. Scaleway and DigitalOcean (C8, C9) are implemented and tested against faked HTTP only; AWS EC2 (C10) is implemented and tested against faked HTTP only; OpenStack (C11) is not implemented. Decisions marked "decided" were made by the project owner on 2026-11-12.
+> Status: **implemented for Hetzner Cloud (steps C1–C6), tested against a simulated provider only.** No real server has been created yet. Scaleway and DigitalOcean (C8, C9) are implemented and tested against faked HTTP only; AWS EC2 (C10) is implemented and tested against faked HTTP only; OpenStack (C11) is implemented and tested against faked HTTP only. Decisions marked "decided" were made by the project owner on 2026-11-12.
 
 A pool can be backed by a cloud template. When jobs wait and no host has a free slot, Jogger creates a server at a cloud provider, the agent on it enrolls, the jobs run, and Jogger deletes the server once it has been idle.
 
@@ -122,6 +122,12 @@ Scheduler: `jogger:scale-cloud-hosts` every minute (boot timeouts, scale-up, sca
 Credentials: an IAM access key id and its secret (permissions: `ec2:RunInstances`, `DescribeInstances`, `TerminateInstances`, `CreateTags`). Requests are signed with Signature V4 by the driver itself; no SDK was added. The location is a region (`eu-west-3`), the server type an instance type (`c6i.xlarge`), the image an AMI id (`ami-…`); AMIs are per region. Server ids are `region/instance-id`, and orphan listing looks at the regions used by the provider's templates.
 
 Provider options (JSON in the template form): `subnet_id`, `security_group_ids` (list), `key_name`, `iam_instance_profile`, `root_volume_gb`, `spot` (`true` for a one-time spot request). Without `subnet_id` the region's default VPC is used. Instances terminate when shut down from inside. EC2 bills per second (60 s minimum) for Linux, so turn "billed by the started hour" off on these templates. A terminated instance stays visible for about an hour at AWS; Jogger treats it as gone.
+
+### OpenStack (OVHcloud and others)
+
+Credentials: the Keystone v3 auth URL (https only, for example `https://auth.cloud.ovh.net/v3`), an application credential id and its secret. Application credentials only; user and password login is not supported. The compute endpoint is read from the token's service catalog, and the template's location is the region (`GRA11`, case as in the catalog). The server type is a flavor id and the image an image id. A token is requested for each operation, nothing is cached.
+
+Provider options: `network_ids` (list; Nova picks a network with `auto` when absent), `security_groups` (names), `key_name`, `availability_zone`. **Floating IPs are not allocated**: the network must give the server an address (OVHcloud's public network does). Orphans are found by the `managed-by` and `jogger-instance` metadata on the servers of each template region, filtered by Jogger because Nova cannot always filter on metadata. A server that goes to `ERROR` (for example no valid host) stays until the boot timeout deletes it.
 
 ### Activating and deactivating a provider
 

@@ -46,7 +46,7 @@
             </x-ui.select>
             @foreach ($credentialFields[$providerDriver] ?? [] as $key => $label)
                 <div @class(['sm:col-span-2' => count($credentialFields[$providerDriver] ?? []) === 1])>
-                    <x-ui.input type="password" label="{{ $label }}" name="credentials.{{ $key }}" wire:model="credentials.{{ $key }}" autocomplete="new-password" class="font-mono"
+                    <x-ui.input :type="$key === 'token' ? 'password' : 'text'" label="{{ $label }}" name="credentials.{{ $key }}" wire:model="credentials.{{ $key }}" autocomplete="new-password" class="font-mono"
                                 :hint="$editingProvider ? 'Leave empty to keep the current token.' : null"
                                 :error="$errors->first('credentials.'.$key)" />
                 </div>
@@ -103,13 +103,13 @@
                         <option value="{{ $provider->id }}">{{ $provider->name }}{{ $provider->status === 'active' ? '' : ' (inactive)' }}</option>
                     @endforeach
                 </x-ui.select>
-                <x-ui.input label="Server type" name="server_type" wire:model="server_type" placeholder="cx22" class="font-mono" hint="Hetzner: cx22. Scaleway: DEV1-M. DigitalOcean: s-2vcpu-4gb. AWS: c6i.xlarge." :error="$errors->first('server_type')" />
-                <x-ui.input label="Location" name="location" wire:model="location" placeholder="fsn1" class="font-mono" hint="Hetzner: fsn1. Scaleway: a zone, fr-par-1. DigitalOcean: a region, fra1. AWS: a region, eu-west-3." :error="$errors->first('location')" />
+                <x-ui.input label="Server type" name="server_type" wire:model="server_type" placeholder="cx22" class="font-mono" hint="Hetzner: cx22. Scaleway: DEV1-M. DigitalOcean: s-2vcpu-4gb. AWS: c6i.xlarge. OpenStack: a flavor id." :error="$errors->first('server_type')" />
+                <x-ui.input label="Location" name="location" wire:model="location" placeholder="fsn1" class="font-mono" hint="Hetzner: fsn1. Scaleway: a zone, fr-par-1. DigitalOcean: a region, fra1. AWS: a region, eu-west-3. OpenStack: a region, GRA11." :error="$errors->first('location')" />
                 <x-ui.input class="sm:col-span-2" label="Image" name="image" wire:model="image" placeholder="ubuntu-24.04" class="font-mono"
                             hint="An image name, or the id of a snapshot made with the Jogger image build." :error="$errors->first('image')" />
                 <div class="sm:col-span-2">
                     <x-ui.textarea label="Provider options (JSON)" name="options" wire:model="options" rows="4" class="font-mono"
-                                   hint='Optional. AWS: {"subnet_id": "subnet-0abc", "security_group_ids": ["sg-0abc"], "spot": true}. Hetzner: ssh_keys, firewalls, networks. DigitalOcean: ssh_keys, vpc_uuid.'
+                                   hint='Optional. OpenStack: {"network_ids": ["…"], "security_groups": ["default"], "key_name": "deploy"}. AWS: {"subnet_id": "subnet-0abc", "security_group_ids": ["sg-0abc"], "spot": true}. Hetzner: ssh_keys, firewalls, networks. DigitalOcean: ssh_keys, vpc_uuid.'
                                    :error="$errors->first('options')" />
                 </div>
                 <h3 class="mt-2 border-b border-border pb-1 text-[0.8125rem] font-semibold uppercase tracking-wide text-text-secondary sm:col-span-2">Scaling</h3>

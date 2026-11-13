@@ -131,6 +131,31 @@ class CloudProvidersTest extends TestCase
         $this->assertSame($provider->id, HostTemplate::query()->sole()->cloud_provider_id);
     }
 
+    public function test_an_openstack_provider_needs_an_https_auth_url_and_keeps_its_other_fields_on_edit(): void
+    {
+        Http::fake(['auth.example.net/*' => Http::response(['token' => ['catalog' => [['type' => 'compute']]]], 201, ['X-Subject-Token' => 't'])]);
+
+        $page = Livewire::actingAs($this->admin)->test(CloudProviders::class)
+            ->set('providerName', 'OVH')->set('providerDriver', 'openstack')
+            ->set('credentials', ['auth_url' => 'http://auth.example.net/v3', 'application_credential_id' => 'id-1', 'token' => 's3'])
+            ->call('saveProvider')
+            ->assertHasErrors('credentials.auth_url');
+
+        $this->assertSame(0, CloudProvider::query()->count());
+
+        $page->set('credentials', ['auth_url' => 'https://auth.example.net/v3', 'application_credential_id' => 'id-1', 'token' => 's3'])
+            ->call('saveProvider')
+            ->assertHasNoErrors();
+
+        $provider = CloudProvider::query()->sole();
+        $page->call('editProvider', $provider->id)->set('credentials', ['token' => 'new-secret'])->call('saveProvider')->assertHasNoErrors();
+
+        $this->assertSame(
+            ['auth_url' => 'https://auth.example.net/v3', 'application_credential_id' => 'id-1', 'token' => 'new-secret'],
+            $provider->fresh()->credentials,
+        );
+    }
+
     public function test_a_provider_can_be_deactivated_and_activated_again(): void
     {
         $provider = CloudProvider::factory()->create(['status' => 'active']);

@@ -38,6 +38,7 @@ final class CloudProviders extends Component
         'scaleway' => ['token' => 'Secret key', 'project_id' => 'Project ID'],
         'digitalocean' => ['token' => 'API token'],
         'aws' => ['access_key_id' => 'Access key ID', 'token' => 'Secret access key'],
+        'openstack' => ['auth_url' => 'Keystone auth URL', 'application_credential_id' => 'Application credential ID', 'token' => 'Application credential secret'],
         'fake' => ['token' => 'Token (not checked)'],
     ];
 
@@ -47,6 +48,7 @@ final class CloudProviders extends Component
         'scaleway' => 'Console → IAM → API keys. The project ID is on the project settings page. The key needs InstancesFullAccess.',
         'digitalocean' => 'Control panel → API → Tokens. Create one with read and write scopes.',
         'aws' => 'IAM user access key allowed to run, describe and terminate EC2 instances (ec2:RunInstances, DescribeInstances, TerminateInstances, CreateTags).',
+        'openstack' => 'Create an application credential in the project (OVHcloud: Public Cloud → Users & Roles, or `openstack application credential create`). The auth URL is the Keystone v3 URL, for example https://auth.cloud.ovh.net/v3. The template location is the region (GRA11); the flavor and image are ids.',
         'fake' => 'Development only. Nothing is created at any provider.',
     ];
 
@@ -55,6 +57,7 @@ final class CloudProviders extends Component
         'scaleway' => 'Scaleway',
         'digitalocean' => 'DigitalOcean',
         'aws' => 'AWS EC2',
+        'openstack' => 'OpenStack (OVHcloud, ...)',
         'fake' => 'Fake (development only)',
     ];
 
@@ -145,6 +148,9 @@ final class CloudProviders extends Component
             foreach (array_keys($fields) as $key) {
                 // On edit an empty token keeps the stored one.
                 $rules["credentials.{$key}"] = [$editing === null ? 'required' : 'nullable', 'string', 'max:500'];
+                if ($key === 'auth_url') {
+                    $rules["credentials.{$key}"][] = 'url:https';
+                }
             }
             $names = ['providerName' => 'name', 'providerDriver' => 'driver'] + array_combine(
                 array_map(fn (string $key) => "credentials.{$key}", array_keys($fields)),
