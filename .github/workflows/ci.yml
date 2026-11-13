@@ -186,6 +186,8 @@ jobs:
           # Built from source with the job's Go: the released binary refuses a newer Go than it was built with.
           install-mode: goinstall
           working-directory: agent
+          # `config verify` downloads a JSON schema from golangci-lint.run, which times out from the IPv6-only worker.
+          verify: false
 
       # The Docker integration tests skip themselves unless this image is present locally.
       - run: docker pull alpine:latest
