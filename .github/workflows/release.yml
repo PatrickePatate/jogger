@@ -9,20 +9,24 @@ permissions:
   packages: write
 
 jobs:
+  # Each architecture builds on a native runner (the emulated arm64 build of the server image never finished) and
+  # pushes by digest; the `images` job then stitches the two into one multi-arch tag.
   build:
-    runs-on: ubuntu-latest
+    name: build (${{ matrix.image }}, ${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
+        image: [jogger, jogger-agent]
+        arch: [amd64, arm64]
         include:
-          - image: jogger
-            file: docker/app/Dockerfile
-          - image: jogger-agent
-            file: docker/agent/Dockerfile
+          - {image: jogger, file: docker/app/Dockerfile}
+          - {image: jogger-agent, file: docker/agent/Dockerfile}
+          - {arch: amd64, runner: ubuntu-latest}
+          - {arch: arm64, runner: ubuntu-24.04-arm}
     steps:
       - uses: actions/checkout@v7
 
-      - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
 
       - uses: docker/login-action@v3
@@ -31,40 +35,82 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Image name and tags
+      - name: Image name and version
         id: image
         env:
           OWNER: ${{ github.repository_owner }}
           IMAGE: ${{ matrix.image }}
           TAG: ${{ github.event.release.tag_name }}
-          PRERELEASE: ${{ github.event.release.prerelease }}
         run: |
-          name="ghcr.io/${OWNER,,}/${IMAGE}"
-          version="${TAG#v}"
-          {
-            echo "version=${version}"
-            echo "tags<<EOF"
-            echo "${name}:${version}"
-            # A pre-release never moves :latest, which is what the install guide pulls.
-            if [ "$PRERELEASE" != "true" ]; then echo "${name}:latest"; fi
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
+          echo "name=ghcr.io/${OWNER,,}/${IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
 
       - uses: docker/build-push-action@v6
+        id: build
         with:
           context: .
           file: ${{ matrix.file }}
-          platforms: linux/amd64,linux/arm64
-          push: true
+          platforms: linux/${{ matrix.arch }}
           build-args: |
             VERSION=${{ steps.image.outputs.version }}
-          tags: ${{ steps.image.outputs.tags }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.version=${{ steps.image.outputs.version }}
             org.opencontainers.image.revision=${{ github.sha }}
-          cache-from: type=gha,scope=${{ matrix.image }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+          outputs: type=image,name=${{ steps.image.outputs.name }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ matrix.image }}-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}-${{ matrix.arch }}
+
+      - name: Export digest
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          mkdir -p "${RUNNER_TEMP}/digests"
+          touch "${RUNNER_TEMP}/digests/${DIGEST#sha256:}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.image }}-${{ matrix.arch }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+
+  images:
+    name: images (${{ matrix.image }})
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [jogger, jogger-agent]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: digests-${{ matrix.image }}-*
+          path: ${{ runner.temp }}/digests
+          merge-multiple: true
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create the multi-arch tags
+        env:
+          OWNER: ${{ github.repository_owner }}
+          IMAGE: ${{ matrix.image }}
+          TAG: ${{ github.event.release.tag_name }}
+          PRERELEASE: ${{ github.event.release.prerelease }}
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          name="ghcr.io/${OWNER,,}/${IMAGE}"
+          tags=(-t "${name}:${TAG#v}")
+          # A pre-release never moves :latest, which is what the install guide pulls.
+          if [ "$PRERELEASE" != "true" ]; then tags+=(-t "${name}:latest"); fi
+          docker buildx imagetools create "${tags[@]}" $(printf "${name}@sha256:%s " *)
+          docker buildx imagetools inspect "${name}:${TAG#v}"
 
   assets:
     name: Agent binaries and install bundle
