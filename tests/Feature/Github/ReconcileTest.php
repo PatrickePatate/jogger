@@ -108,4 +108,42 @@ class ReconcileTest extends TestCase
         $this->artisan('jogger:reconcile')->assertSuccessful();
         $this->github->assertCalled('listRunners');
     }
+
+    public function test_a_running_job_that_github_says_is_completed_is_closed(): void
+    {
+        $payload = json_decode((string) file_get_contents(base_path('tests/Fixtures/github/workflow_job.completed.json')), true, flags: JSON_THROW_ON_ERROR);
+        $data = WorkflowJobData::from($payload);
+        $this->repo->update(['github_repo_id' => $data->repositoryId]);
+        $job = WorkflowJob::factory()->running()->create([
+            'repository_id' => $this->repo->id, 'github_job_id' => $data->jobId, 'pool_id' => $this->pool->id,
+            'updated_at' => now()->subMinutes(10),
+        ]);
+        $this->github->jobs[$data->jobId] = $data;
+
+        $this->artisan('jogger:reconcile')->assertSuccessful();
+
+        $this->assertSame('completed', $job->refresh()->status->value);
+    }
+
+    public function test_a_running_job_github_no_longer_knows_is_cancelled(): void
+    {
+        $job = WorkflowJob::factory()->running()->create([
+            'repository_id' => $this->repo->id, 'pool_id' => $this->pool->id, 'updated_at' => now()->subMinutes(10),
+        ]);
+
+        $this->artisan('jogger:reconcile')->assertSuccessful();
+
+        $job->refresh();
+        $this->assertSame('completed', $job->status->value);
+        $this->assertSame('cancelled', $job->conclusion->value);
+    }
+
+    public function test_a_recently_updated_job_is_left_alone(): void
+    {
+        WorkflowJob::factory()->running()->create(['repository_id' => $this->repo->id, 'pool_id' => $this->pool->id]);
+
+        $this->artisan('jogger:reconcile')->assertSuccessful();
+
+        $this->github->assertNotCalled('getJob');
+    }
 }

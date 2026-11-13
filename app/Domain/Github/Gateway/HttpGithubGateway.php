@@ -106,6 +106,28 @@ final class HttpGithubGateway implements GithubGateway
         return array_values($jobs);
     }
 
+    public function getJob(Installation $installation, Repository $repository, int $githubJobId): ?WorkflowJobData
+    {
+        $this->assertRepoName($repository->full_name);
+
+        try {
+            $job = $this->send($installation, 'GET', "/repos/{$repository->full_name}/actions/jobs/{$githubJobId}")->json();
+        } catch (GithubApiError $e) {
+            if ($e->isNotFound()) {
+                return null;
+            }
+
+            throw $e;
+        }
+
+        return WorkflowJobData::from([
+            'action' => $job['status'] ?? 'completed',
+            'workflow_job' => $job,
+            'repository' => ['id' => $repository->github_repo_id, 'full_name' => $repository->full_name, 'private' => $repository->private],
+            'installation' => ['id' => $installation->github_installation_id],
+        ]);
+    }
+
     public function listInstallationRepositories(Installation $installation): array
     {
         $items = $this->paginate($installation, '/installation/repositories', [], 'repositories');

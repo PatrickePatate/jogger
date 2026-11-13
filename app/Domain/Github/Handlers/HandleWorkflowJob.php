@@ -33,7 +33,12 @@ final class HandleWorkflowJob implements WebhookHandler
 
     public function handle(WebhookDelivery $delivery): void
     {
-        $data = WorkflowJobData::from($delivery->payload);
+        $this->apply(WorkflowJobData::from($delivery->payload));
+    }
+
+    /** Mirrors one job state (from a webhook or from the API) and acts on it. */
+    public function apply(WorkflowJobData $data): void
+    {
         $job = ($this->upsert)($data);
         if ($job === null) {
             return;

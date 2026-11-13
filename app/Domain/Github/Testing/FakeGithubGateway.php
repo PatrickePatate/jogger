@@ -32,6 +32,9 @@ final class FakeGithubGateway implements GithubGateway
     /** @var array<int, WorkflowJobData> */
     public array $queuedJobs = [];
 
+    /** @var array<int, WorkflowJobData> jobs GitHub "knows", keyed by job id (see getJob) */
+    public array $jobs = [];
+
     /** @var array<int, RepositoryData> */
     public array $repositories = [];
 
@@ -87,6 +90,13 @@ final class FakeGithubGateway implements GithubGateway
         $this->record('listQueuedJobs', ['installation' => $installation, 'repository' => $repository]);
 
         return array_values(array_filter($this->queuedJobs, fn (WorkflowJobData $j) => $j->repositoryFullName === $repository->full_name));
+    }
+
+    public function getJob(Installation $installation, Repository $repository, int $githubJobId): ?WorkflowJobData
+    {
+        $this->record('getJob', ['installation' => $installation, 'repository' => $repository, 'jobId' => $githubJobId]);
+
+        return $this->jobs[$githubJobId] ?? null;
     }
 
     public function listInstallationRepositories(Installation $installation): array

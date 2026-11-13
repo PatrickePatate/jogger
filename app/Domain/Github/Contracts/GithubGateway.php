@@ -59,6 +59,14 @@ interface GithubGateway
     public function listQueuedJobs(Installation $installation, Repository $repository): array;
 
     /**
+     * One job as GitHub sees it now, in the shape of a webhook; null when GitHub no longer has it (404).
+     *
+     * @throws GithubRateLimited
+     * @throws GithubApiError
+     */
+    public function getJob(Installation $installation, Repository $repository, int $githubJobId): ?WorkflowJobData;
+
+    /**
      * @return array<int, RepositoryData> repositories the installation can access (all pages)
      *
      * @throws GithubRateLimited
