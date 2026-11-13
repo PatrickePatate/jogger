@@ -18,6 +18,8 @@ COPY --from=vendor /app/vendor ./vendor
 RUN npm run build
 
 FROM dunglas/frankenphp:1-php8.4
+ARG VERSION=dev
+ENV JOGGER_VERSION=${VERSION}
 RUN install-php-extensions pdo_pgsql redis pcntl intl zip bcmath opcache \
  && cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
  && printf 'opcache.enable_cli=1\nopcache.validate_timestamps=0\nmemory_limit=256M\nexpose_php=0\n' > "$PHP_INI_DIR/conf.d/jogger.ini" \

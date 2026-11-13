@@ -92,7 +92,7 @@
                     </div>
 
                     <p class="mt-4 flex justify-between border-t border-border pt-3 text-[0.8125rem] text-text-secondary">
-                        <span>Agent {{ $host->agent_version ?? 'unknown' }}</span>
+                        <span>Agent {{ $host->agent_version ?? 'unknown' }}@if ($host->availableAgentVersion()) · <span class="font-medium text-warning">{{ $host->availableAgentVersion() }} available</span>@endif</span>
                         <span>{{ $host->last_seen_at ? 'seen '.$host->last_seen_at->diffForHumans() : 'never seen' }}</span>
                     </p>
 
@@ -104,6 +104,9 @@
                             @else
                                 <x-ui.button size="xs" variant="outline" wire:click="cordon('{{ $host->id }}')">Cordon</x-ui.button>
                                 <x-ui.button size="xs" variant="outline" wire:click="drain('{{ $host->id }}')" wire:confirm="Drain {{ $host->name }}? No new runners will start there; running jobs finish first.">Drain</x-ui.button>
+                            @endif
+                            @if ($host->availableAgentVersion() && in_array($state, ['online', 'cordoned', 'draining'], true))
+                                <x-ui.button size="xs" variant="outline" wire:click="updateAgent('{{ $host->id }}')" wire:confirm="Update the agent on {{ $host->name }} to {{ $host->availableAgentVersion() }}? It restarts within seconds; only possible while no runner is active (drain it first).">Update agent</x-ui.button>
                             @endif
                             <x-ui.button size="xs" variant="destructive" wire:click="revoke('{{ $host->id }}')" wire:confirm="Revoke {{ $host->name }}? Its agent is disconnected for good and must be enrolled again.">Revoke</x-ui.button>
                         </div>

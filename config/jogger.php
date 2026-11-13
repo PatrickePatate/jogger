@@ -8,6 +8,11 @@ use App\Domain\Cloud\Testing\FakeCloudDriver;
 return [
 
     /*
+    | This installation's version (set at image build). The newest agent a host may be updated to.
+    */
+    'version' => env('JOGGER_VERSION', 'dev'),
+
+    /*
     | Retention (days)
     */
     'log_retention_days' => (int) env('JOGGER_LOG_RETENTION_DAYS', 30),

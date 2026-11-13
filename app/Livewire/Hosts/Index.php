@@ -6,6 +6,7 @@ namespace App\Livewire\Hosts;
 
 use App\Domain\Hosts\Actions\CordonHost;
 use App\Domain\Hosts\Actions\DrainHost;
+use App\Domain\Hosts\Actions\RequestAgentUpdate;
 use App\Domain\Hosts\Actions\RevokeHost;
 use App\Domain\Hosts\Enums\HostStatus;
 use App\Domain\Hosts\Models\Host;
@@ -51,6 +52,11 @@ final class Index extends Component
     public function drain(string $id, DrainHost $drain): void
     {
         $drain($this->host($id));
+    }
+
+    public function updateAgent(string $id, RequestAgentUpdate $update): void
+    {
+        $update($this->host($id));
     }
 
     public function revoke(string $id, RevokeHost $revoke): void

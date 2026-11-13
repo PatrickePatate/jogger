@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
+	"os"
 	"time"
 
 	"github.com/PatrickePatate/jogger/agent/internal/docker"
@@ -68,6 +70,35 @@ func RegisterRunner(d *Dispatcher, r *docker.Runner, emit func(events.Event), on
 		}
 
 		return map[string]any{"images_deleted": res.ImagesDeleted, "bytes_freed": res.BytesFreed + freed, "build_cache_bytes_freed": freed}, nil
+	})
+
+	// agent.update replaces this agent's own container with one running the new image. The swap happens after the
+	// ack so the server sees the command succeed; if preparing fails the running agent is untouched.
+	d.Register("agent.update", func(ctx context.Context, cmd Command) (map[string]any, error) {
+		var p struct {
+			Image    string               `json:"image"`
+			Version  string               `json:"version"`
+			Registry *docker.RegistryAuth `json:"registry_auth"`
+		}
+		if err := decode(cmd.Payload, &p); err != nil || p.Image == "" {
+			return nil, errors.New("invalid agent.update payload: image is required")
+		}
+		self, err := os.Hostname()
+		if err != nil {
+			return nil, err
+		}
+		rep, err := r.Docker.PrepareReplacement(ctx, self, p.Image, p.Registry)
+		if err != nil {
+			return nil, err
+		}
+		go func() {
+			time.Sleep(3 * time.Second)
+			if err := rep.Finish(context.Background()); err != nil {
+				slog.Error("agent update failed; the current agent keeps running", "error", err)
+			}
+		}()
+
+		return map[string]any{"image": p.Image, "version": p.Version}, nil
 	})
 
 	d.Register("runner.stop", func(ctx context.Context, cmd Command) (map[string]any, error) {

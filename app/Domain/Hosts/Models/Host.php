@@ -31,6 +31,19 @@ class Host extends Model
 
     protected $hidden = ['credential_hash'];
 
+    /** The agent version Jogger would update this host to, or null when it is current, unknown or this is a dev build. */
+    public function availableAgentVersion(): ?string
+    {
+        $latest = (string) config('jogger.version');
+        $current = $this->agent_version;
+
+        if ($current === null || ! preg_match('/^\d+\.\d+\.\d+/', $latest) || ! preg_match('/^\d+\.\d+\.\d+/', (string) $current)) {
+            return null;
+        }
+
+        return version_compare((string) $current, $latest, '<') ? $latest : null;
+    }
+
     protected $casts = [
         'status' => HostStatus::class,
         'labels' => PgTextArray::class,

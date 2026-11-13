@@ -7,12 +7,14 @@ namespace Tests\Feature\Hosts;
 use App\Domain\Hosts\Actions\CordonHost;
 use App\Domain\Hosts\Actions\DrainHost;
 use App\Domain\Hosts\Actions\EnrollHost;
+use App\Domain\Hosts\Actions\RequestAgentUpdate;
 use App\Domain\Hosts\Actions\RevokeHost;
 use App\Domain\Hosts\Contracts\HostDriver;
 use App\Domain\Hosts\Enums\CommandStatus;
 use App\Domain\Hosts\Enums\HostStatus;
 use App\Domain\Hosts\Models\EnrollmentToken;
 use App\Domain\Hosts\Models\Host;
+use App\Domain\Hosts\Models\HostCommand;
 use App\Domain\Runners\Contracts\RunnerCensus;
 use App\Livewire\Hosts\Index;
 use App\Models\User;
@@ -153,5 +155,39 @@ class OperationsTest extends TestCase
         $this->assertSame('local', $host->name);
 
         $this->artisan('jogger:install')->expectsOutputToContain('already enrolled')->assertSuccessful();
+    }
+
+    public function test_an_older_agent_can_be_updated_when_it_has_no_runners(): void
+    {
+        config(['jogger.version' => '1.1.0', 'jogger.cloud.agent_image' => 'ghcr.io/acme/jogger-agent:latest']);
+        $host = $this->host();
+        $host->update(['agent_version' => '1.0.0']);
+        $this->busy(0);
+
+        Livewire::actingAs(User::factory()->admin()->create())->test(Index::class)
+            ->assertSee('1.1.0 available')
+            ->call('updateAgent', $host->id);
+
+        $command = HostCommand::query()->where('host_id', $host->id)->sole();
+        $this->assertSame('agent.update', $command->type);
+        $this->assertSame(['image' => 'ghcr.io/acme/jogger-agent:1.1.0', 'version' => '1.1.0'], $command->payload);
+    }
+
+    public function test_no_update_while_runners_are_active_or_the_agent_is_current(): void
+    {
+        config(['jogger.version' => '1.1.0']);
+        $host = $this->host();
+        $host->update(['agent_version' => '1.0.0']);
+        $this->busy(2);
+        $this->assertFalse(app(RequestAgentUpdate::class)($host));
+
+        $this->busy(0);
+        $host->update(['agent_version' => '1.1.0']);
+        $this->assertFalse(app(RequestAgentUpdate::class)($host->refresh()));
+
+        config(['jogger.version' => 'dev']);
+        $host->update(['agent_version' => '1.0.0']);
+        $this->assertNull($host->refresh()->availableAgentVersion());
+        $this->assertSame(0, HostCommand::query()->where('host_id', $host->id)->count());
     }
 }
