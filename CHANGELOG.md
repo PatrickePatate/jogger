@@ -5,6 +5,19 @@ generated when the release is created (see [docs/RELEASING.md](docs/RELEASING.md
 
 ## Unreleased
 
+## 1.1.0 - 2026-11-13
+
+Cloud hosts: a pool can scale with servers created at a cloud provider (Hetzner Cloud first). Jogger creates a
+server when jobs wait and no host has a free slot, the agent enrolls, and the server is deleted once idle.
+Templates set jobs per server, warm servers, caps, idle time and lifetime; an orphan sweep removes leaked servers.
+Administration → Cloud manages providers and templates. See [docs/CLOUD-HOSTS.md](docs/CLOUD-HOSTS.md).
+Verified on a real Hetzner project: create, enroll, run a full CI run, delete.
+
+Also: jobs whose `completed` webhook was missed are reconciled against GitHub after 3 minutes, so they no longer
+pin a runner (or a cloud server).
+
+Not included: Scaleway, DigitalOcean, AWS and OpenStack drivers; the hourly-billing rule was not tried on a real server.
+
 ## 1.0.0 - 2026-11-12
 
 First public version: ephemeral runners per job, pools with warm runners, multi-host agent, live UI and logs,
