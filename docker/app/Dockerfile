@@ -1,14 +1,14 @@
 # Jogger server image: web app, queue workers (Horizon), scheduler and Reverb all run from it, chosen by command.
 #   docker build -f docker/app/Dockerfile -t jogger .
 
-FROM composer:2 AS vendor
+FROM --platform=$BUILDPLATFORM composer:2 AS vendor
 WORKDIR /app
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --ignore-platform-reqs
 COPY . .
 RUN composer dump-autoload --optimize --no-dev --no-scripts
 
-FROM node:22-alpine AS assets
+FROM --platform=$BUILDPLATFORM node:22-alpine AS assets
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
