@@ -76,6 +76,20 @@ class ScaleUpTest extends TestCase
         $this->assertCount($servers, $this->cloud->created);
     }
 
+    public function test_an_inactive_provider_gets_no_new_servers(): void
+    {
+        $this->template(['max_hosts' => 5]);
+        $this->jobs(2);
+        $this->provider->update(['status' => 'inactive']);
+
+        $this->assertSame(0, app(ScaleCloudHosts::class)());
+        $this->assertCount(0, $this->cloud->created);
+
+        $this->provider->update(['status' => 'active']);
+
+        $this->assertSame(2, app(ScaleCloudHosts::class)());
+    }
+
     public function test_no_server_when_an_online_host_has_room(): void
     {
         $template = $this->template(['max_runners_per_host' => 2]);

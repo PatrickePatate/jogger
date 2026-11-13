@@ -32,14 +32,29 @@ use Livewire\Component;
 #[Title('Cloud hosts')]
 final class CloudProviders extends Component
 {
-    /** Form fields per driver. The token is the only credential so far. */
+    /** Form fields per driver. `token` is the secret every driver needs; some have more. */
     private const CREDENTIAL_FIELDS = [
         'hetzner' => ['token' => 'API token'],
+        'scaleway' => ['token' => 'Secret key', 'project_id' => 'Project ID'],
+        'digitalocean' => ['token' => 'API token'],
+        'aws' => ['access_key_id' => 'Access key ID', 'token' => 'Secret access key'],
         'fake' => ['token' => 'Token (not checked)'],
+    ];
+
+    /** Where to find the credentials, shown under the form. */
+    private const CREDENTIAL_HELP = [
+        'hetzner' => 'Cloud console → your project → Security → API tokens. Create one with read and write access.',
+        'scaleway' => 'Console → IAM → API keys. The project ID is on the project settings page. The key needs InstancesFullAccess.',
+        'digitalocean' => 'Control panel → API → Tokens. Create one with read and write scopes.',
+        'aws' => 'IAM user access key allowed to run, describe and terminate EC2 instances (ec2:RunInstances, DescribeInstances, TerminateInstances, CreateTags).',
+        'fake' => 'Development only. Nothing is created at any provider.',
     ];
 
     private const DRIVER_LABELS = [
         'hetzner' => 'Hetzner Cloud',
+        'scaleway' => 'Scaleway',
+        'digitalocean' => 'DigitalOcean',
+        'aws' => 'AWS EC2',
         'fake' => 'Fake (development only)',
     ];
 
@@ -65,6 +80,9 @@ final class CloudProviders extends Component
     public string $image = '';
 
     /** Comma-separated in the form; an array everywhere else. */
+    /** Provider-specific settings as a JSON object (AWS subnet, security groups, spot...). */
+    public string $options = '';
+
     public string $labels = 'self-hosted, linux, x64';
 
     public string $max_runners_per_host = '1';
@@ -139,6 +157,10 @@ final class CloudProviders extends Component
                 fn (string $value) => $value !== '',
             );
             $tokenChanged = $credentials !== [];
+            // An edit that changes one field keeps the others (Scaleway has a key and a project id).
+            if ($editing !== null && $tokenChanged) {
+                $credentials = array_merge($editing->credentials, $credentials);
+            }
 
             // The provider has the final say: nothing is saved unless it accepts the token.
             if ($tokenChanged) {
@@ -174,6 +196,21 @@ final class CloudProviders extends Component
 
         $this->resetProvider();
         $this->dispatch('toast', type: 'success', message: $message);
+    }
+
+    /** An inactive provider gets no new servers; the ones it already has are still deleted when idle. */
+    public function toggleProvider(string $id): void
+    {
+        $this->authorizeAdmin();
+        $provider = CloudProvider::query()->findOrFail($id);
+
+        $provider->status = $provider->status === 'active' ? 'inactive' : 'active';
+        $provider->save();
+        Audit::record($provider->status === 'active' ? 'cloud.provider_activated' : 'cloud.provider_deactivated', $provider, ['name' => $provider->name, 'driver' => $provider->driver]);
+
+        $this->dispatch('toast', type: 'success', message: $provider->status === 'active'
+            ? "{$provider->name} is active again."
+            : "{$provider->name} is inactive. No new servers are created there.");
     }
 
     public function deleteProvider(string $id): void
@@ -213,6 +250,7 @@ final class CloudProviders extends Component
             'server_type' => $template->server_type,
             'location' => $template->location,
             'image' => $template->image,
+            'options' => $template->options === [] ? '' : (string) json_encode($template->options, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
             'labels' => implode(', ', $template->labels),
             'max_runners_per_host' => (string) $template->max_runners_per_host,
             'warm_hosts' => (string) $template->warm_hosts,
@@ -311,6 +349,7 @@ final class CloudProviders extends Component
             'pools' => RunnerPool::query()->orderBy('name')->get(['id', 'name']),
             'drivers' => $this->drivers(),
             'credentialFields' => self::CREDENTIAL_FIELDS,
+            'credentialHelp' => self::CREDENTIAL_HELP,
             'editingProvider' => $this->providerId !== null,
             'editingTemplate' => $this->templateId !== null,
         ]);
@@ -361,6 +400,7 @@ final class CloudProviders extends Component
             'server_type' => trim($this->server_type),
             'location' => trim($this->location),
             'image' => trim($this->image),
+            'options' => $this->decodedOptions(),
             'labels' => $list($this->labels),
             'max_runners_per_host' => $this->max_runners_per_host,
             'warm_hosts' => $this->warm_hosts,
@@ -388,6 +428,24 @@ final class CloudProviders extends Component
         }
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    private function decodedOptions(): array
+    {
+        $text = trim($this->options);
+        if ($text === '') {
+            return [];
+        }
+
+        $decoded = json_decode($text, true);
+        if (! is_array($decoded) || array_is_list($decoded)) {
+            throw ValidationException::withMessages(['options' => 'Provider options must be a JSON object, for example {"subnet_id": "subnet-0abc"}.']);
+        }
+
+        return $decoded;
+    }
+
     private function resetProvider(): void
     {
         $this->reset('providerId', 'providerName', 'credentials');
@@ -404,6 +462,7 @@ final class CloudProviders extends Component
             'server_type' => '',
             'location' => '',
             'image' => '',
+            'options' => '',
             'labels' => 'self-hosted, linux, x64',
             'max_runners_per_host' => '1',
             'warm_hosts' => '0',

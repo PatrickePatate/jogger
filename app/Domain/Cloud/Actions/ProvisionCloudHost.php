@@ -49,7 +49,7 @@ final class ProvisionCloudHost
             DB::select('select pg_advisory_xact_lock(hashtext(?))', ['jogger-cloud-hosts']);
             $locked = HostTemplate::query()->whereKey($template->getKey())->lockForUpdate()->with('provider')->first();
 
-            if ($locked === null || $locked->status !== 'active' || $locked->provider === null) {
+            if ($locked === null || $locked->status !== 'active' || $locked->provider === null || $locked->provider->status !== 'active') {
                 return null;
             }
 

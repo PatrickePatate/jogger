@@ -23,6 +23,7 @@ final class TemplateRules
             'server_type' => ['required', 'string', 'max:60', 'regex:/^[A-Za-z0-9._-]+$/'],
             'location' => ['required', 'string', 'max:60', 'regex:/^[A-Za-z0-9._-]+$/'],
             'image' => ['required', 'string', 'max:200', 'regex:/^[A-Za-z0-9][A-Za-z0-9._:\/-]*$/'],
+            'options' => ['present', 'array', 'max:20'],
             'labels' => ['required', 'array', 'min:1', 'max:20'],
             'labels.*' => ['string', 'distinct', 'regex:'.PoolRules::LABEL],
             'max_runners_per_host' => ['required', 'integer', 'min:1', 'max:500'],

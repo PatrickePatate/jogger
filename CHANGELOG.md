@@ -5,6 +5,8 @@ generated when the release is created (see [docs/RELEASING.md](docs/RELEASING.md
 
 ## Unreleased
 
+Cloud hosts: Scaleway, DigitalOcean and AWS EC2 drivers (Administration → Cloud). Tested with faked API responses only; OpenStack is still to do. Templates take provider options as JSON (AWS subnet, security groups, spot). Providers can be deactivated to stop new servers. The Cloud page is reorganised: lists first, forms in sections, credential help per driver.
+
 ## 1.1.1 - 2026-11-13
 
 Agents can be updated from the Hosts page: a host running an older agent than the server shows "X available" and an "Update agent" button (host must have no active runner; drain it first). The agent pulls the new image and replaces its own container with one that has the same configuration. Needs agent 1.1.0 or later to receive the command, so the first jump from 1.0.0 is still manual. Server images now know their version (`JOGGER_VERSION`).

@@ -131,6 +131,41 @@ class CloudProvidersTest extends TestCase
         $this->assertSame($provider->id, HostTemplate::query()->sole()->cloud_provider_id);
     }
 
+    public function test_a_provider_can_be_deactivated_and_activated_again(): void
+    {
+        $provider = CloudProvider::factory()->create(['status' => 'active']);
+
+        $page = Livewire::actingAs($this->admin)->test(CloudProviders::class)
+            ->call('toggleProvider', $provider->id);
+
+        $this->assertSame('inactive', $provider->fresh()->status);
+        $this->assertTrue(AuditLog::query()->where('action', 'cloud.provider_deactivated')->exists());
+
+        $page->call('toggleProvider', $provider->id);
+
+        $this->assertSame('active', $provider->fresh()->status);
+        $this->assertTrue(AuditLog::query()->where('action', 'cloud.provider_activated')->exists());
+    }
+
+    public function test_provider_options_are_stored_as_a_json_object(): void
+    {
+        $provider = CloudProvider::factory()->create();
+
+        $page = Livewire::actingAs($this->admin)->test(CloudProviders::class)
+            ->set('name', 'aws-x')->set('cloud_provider_id', $provider->id)
+            ->set('server_type', 'c6i.xlarge')->set('location', 'eu-west-3')->set('image', 'ami-0abc')
+            ->set('options', '{"subnet_id": "subnet-1", "spot": true}')
+            ->call('saveTemplate')
+            ->assertHasNoErrors();
+
+        $this->assertEqualsCanonicalizing(['subnet_id' => 'subnet-1', 'spot' => true], HostTemplate::query()->sole()->options);
+
+        $page->call('editTemplate', HostTemplate::query()->sole()->id)
+            ->set('options', '[1, 2]')
+            ->call('saveTemplate')
+            ->assertHasErrors('options');
+    }
+
     public function test_a_template_is_created_and_synced_with_its_pools(): void
     {
         $provider = CloudProvider::factory()->create();

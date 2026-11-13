@@ -1,6 +1,6 @@
 # Cloud hosts
 
-> Status: **implemented for Hetzner Cloud (steps C1–C6), tested against a simulated provider only.** No real server has been created yet. Scaleway, DigitalOcean, AWS EC2 and OpenStack (C8–C11) are not implemented. Decisions marked "decided" were made by the project owner on 2026-11-12.
+> Status: **implemented for Hetzner Cloud (steps C1–C6), tested against a simulated provider only.** No real server has been created yet. Scaleway and DigitalOcean (C8, C9) are implemented and tested against faked HTTP only; AWS EC2 (C10) is implemented and tested against faked HTTP only; OpenStack (C11) is not implemented. Decisions marked "decided" were made by the project owner on 2026-11-12.
 
 A pool can be backed by a cloud template. When jobs wait and no host has a free slot, Jogger creates a server at a cloud provider, the agent on it enrolls, the jobs run, and Jogger deletes the server once it has been idle.
 
@@ -110,6 +110,22 @@ One driver for any OpenStack cloud, OVHcloud Public Cloud first.
 Settings: `JOGGER_CLOUD_MAX_HOSTS` (global cap, default 10), `JOGGER_AGENT_IMAGE` (agent image started on new servers), `JOGGER_INSTANCE_ID` (label written on servers; defaults to a value derived from `APP_KEY`). Two installations sharing one cloud project must have different instance ids, or each would delete the other's servers as orphans.
 
 Scheduler: `jogger:scale-cloud-hosts` every minute (boot timeouts, scale-up, scale-down), `jogger:reconcile-cloud-hosts` every five minutes (orphans, lost servers, retried deletions).
+
+### Scaleway and DigitalOcean
+
+- **Scaleway**: credentials are a secret key and a project id. The template's location is a zone (`fr-par-1`), the server type a commercial type (`DEV1-M`), the image a label (`ubuntu_jammy`) or an image UUID. Server ids are stored as `zone/uuid`. Orphan listing only looks at the zones used by the provider's templates.
+- **DigitalOcean**: credentials are an API token. The location is a region (`fra1`), the server type a size slug (`s-2vcpu-4gb`), the image a slug or a snapshot id. A droplet always has a public IPv4, so the template's IPv4 switch is ignored. Template options accepted: `ssh_keys`, `vpc_uuid`, `volumes`.
+- Both store Jogger's labels as `key:value` tags. Neither was tried against a real account.
+
+### AWS EC2
+
+Credentials: an IAM access key id and its secret (permissions: `ec2:RunInstances`, `DescribeInstances`, `TerminateInstances`, `CreateTags`). Requests are signed with Signature V4 by the driver itself; no SDK was added. The location is a region (`eu-west-3`), the server type an instance type (`c6i.xlarge`), the image an AMI id (`ami-…`); AMIs are per region. Server ids are `region/instance-id`, and orphan listing looks at the regions used by the provider's templates.
+
+Provider options (JSON in the template form): `subnet_id`, `security_group_ids` (list), `key_name`, `iam_instance_profile`, `root_volume_gb`, `spot` (`true` for a one-time spot request). Without `subnet_id` the region's default VPC is used. Instances terminate when shut down from inside. EC2 bills per second (60 s minimum) for Linux, so turn "billed by the started hour" off on these templates. A terminated instance stays visible for about an hour at AWS; Jogger treats it as gone.
+
+### Activating and deactivating a provider
+
+Administration → Cloud has an Activate/Deactivate button per provider. An inactive provider gets no new servers and is skipped by the orphan sweep; servers it already has are still deleted when idle.
 
 ## Not done or not verified
 

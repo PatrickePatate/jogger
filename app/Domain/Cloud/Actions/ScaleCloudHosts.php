@@ -36,6 +36,7 @@ final class ScaleCloudHosts
     {
         $templates = HostTemplate::query()
             ->where('status', 'active')
+            ->whereHas('provider', fn ($query) => $query->where('status', 'active'))
             ->whereHas('pools', fn ($query) => $query->where('runner_pools.status', PoolStatus::Active->value))
             ->when($only !== null, fn ($query) => $query->whereKey($only?->getKey()))
             ->orderBy('name')

@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Domain\Cloud\Drivers\AwsEc2Driver;
+use App\Domain\Cloud\Drivers\DigitalOceanDriver;
 use App\Domain\Cloud\Drivers\HetznerDriver;
+use App\Domain\Cloud\Drivers\ScalewayDriver;
 use App\Domain\Cloud\Testing\FakeCloudDriver;
 
 return [
@@ -118,6 +121,9 @@ return [
         'drivers' => [
             'fake' => FakeCloudDriver::class,
             'hetzner' => HetznerDriver::class,
+            'scaleway' => ScalewayDriver::class,
+            'digitalocean' => DigitalOceanDriver::class,
+            'aws' => AwsEc2Driver::class,
         ],
         // Written into every managed server's labels; reconciliation only touches servers carrying it.
         'instance_id' => env('JOGGER_INSTANCE_ID'),
