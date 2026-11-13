@@ -5,6 +5,8 @@ generated when the release is created (see [docs/RELEASING.md](docs/RELEASING.md
 
 ## Unreleased
 
+## 1.2.0 - 2026-11-13
+
 Cloud hosts: Scaleway, DigitalOcean, AWS EC2 and OpenStack (OVHcloud and others) drivers (Administration → Cloud). Tested with faked API responses only. Templates take provider options as JSON (AWS subnet, security groups, spot). Providers can be deactivated to stop new servers. The Cloud page is reorganised: lists first, forms in sections, credential help per driver.
 
 ## 1.1.1 - 2026-11-13
