@@ -45,7 +45,7 @@ jobs:
           echo "name=ghcr.io/${OWNER,,}/${IMAGE}" >> "$GITHUB_OUTPUT"
           echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
 
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         id: build
         with:
           context: .
