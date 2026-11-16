@@ -180,7 +180,7 @@ jobs:
 
       - run: go vet ./...
 
-      - uses: golangci/golangci-lint-action@v6
+      - uses: golangci/golangci-lint-action@v9
         with:
           version: v1.64
           # Built from source with the job's Go: the released binary refuses a newer Go than it was built with.
